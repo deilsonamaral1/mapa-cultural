@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { @apply bg-white text-ink antialiased; }
+input, textarea, select { @apply w-full rounded border border-gray-300 px-3 py-2 text-sm; }
+input[type="checkbox"] { @apply w-auto; }
+label { @apply block text-sm font-medium text-gray-700; }
