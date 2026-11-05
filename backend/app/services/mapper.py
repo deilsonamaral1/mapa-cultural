@@ -7,6 +7,7 @@ GET /api/agent/find numa instância de teste antes de ligar o envio real.
 import hashlib
 import json
 
+from app.core.meta_keys import AGENT_META_KEYS, SPACE_META_KEYS
 from app.models.entities import Agent, Space
 
 
@@ -16,8 +17,10 @@ def _location(obj) -> dict | None:
     return {"latitude": obj.latitude, "longitude": obj.longitude}
 
 
-def _meta(obj) -> dict:
-    return {m.key: m.value for m in obj.meta if m.value not in (None, "")}
+def _meta(obj, allowed: frozenset) -> dict:
+    # só chaves da lista permitida seguem para a instância oficial
+    return {m.key: m.value for m in obj.meta
+            if m.key in allowed and m.value not in (None, "")}
 
 
 def agent_payload(a: Agent) -> dict:
@@ -28,7 +31,7 @@ def agent_payload(a: Agent) -> dict:
         "longDescription": a.long_description,
         "location": _location(a),
         "publicLocation": a.public_location,
-        **_meta(a),
+        **_meta(a, AGENT_META_KEYS),
     }
     return {k: v for k, v in payload.items() if v is not None}
 
@@ -42,7 +45,7 @@ def space_payload(s: Space, owner_remote_id: int | None) -> dict:
         "location": _location(s),
         "public": s.public,
         "owner": owner_remote_id,  # agente responsável precisa existir na instância destino
-        **_meta(s),
+        **_meta(s, SPACE_META_KEYS),
     }
     return {k: v for k, v in payload.items() if v is not None}
 

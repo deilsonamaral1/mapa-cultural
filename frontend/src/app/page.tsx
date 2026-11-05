@@ -39,7 +39,10 @@ export default function Home() {
     <div className="flex h-screen flex-col">
       <header className="flex items-center justify-between bg-brand px-5 py-3 text-white">
         <h1 className="text-lg font-semibold">Mapa Cultural · {city}</h1>
-        <Link href="/admin" className="text-sm underline-offset-2 hover:underline">Área do cadastro</Link>
+        <nav className="flex gap-4 text-sm">
+          <Link href="/cadastro" className="underline-offset-2 hover:underline">Cadastre-se</Link>
+          <Link href="/admin" className="underline-offset-2 hover:underline">Entrar</Link>
+        </nav>
       </header>
 
       <div className="grid min-h-0 flex-1 md:grid-cols-[380px_1fr]">

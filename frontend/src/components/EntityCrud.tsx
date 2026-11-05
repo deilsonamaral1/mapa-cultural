@@ -15,6 +15,8 @@ export type Field = {
 
 type Row = Record<string, any>;
 
+const STATUS_LABEL: Record<number, string> = { 1: "Publicado", 0: "Pendente de aprovação" };
+
 export default function EntityCrud({
   title, endpoint, fields, columns, initial,
 }: {
@@ -101,19 +103,22 @@ export default function EntityCrud({
 
       <table className="mt-5 w-full text-sm">
         <thead className="text-left text-gray-500">
-          <tr>{columns.map((c) => <th key={c.key} className="pb-2">{c.label}</th>)}<th /></tr>
+          <tr>{columns.map((c) => <th key={c.key} className="pb-2">{c.label}</th>)}<th className="pb-2">Situação</th><th /></tr>
         </thead>
         <tbody>
           {rows.map((r) => (
             <tr key={r.id} className="border-t">
               {columns.map((c) => <td key={c.key} className="py-2 pr-3">{String(r[c.key] ?? "—")}</td>)}
+              <td className={`py-2 pr-3 ${r.status === 1 ? "text-emerald-700" : "text-amber-700"}`}>
+                {STATUS_LABEL[r.status] ?? r.status}
+              </td>
               <td className="space-x-3 text-right">
                 <button className="text-brand-dark underline" onClick={() => setForm({ ...r, meta: r.meta ?? {} })}>Editar</button>
                 <button className="text-red-600 underline" onClick={() => remove(r)}>Excluir</button>
               </td>
             </tr>
           ))}
-          {rows.length === 0 && <tr><td className="py-6 text-gray-500" colSpan={columns.length + 1}>Nenhum registro.</td></tr>}
+          {rows.length === 0 && <tr><td className="py-6 text-gray-500" colSpan={columns.length + 2}>Nenhum registro.</td></tr>}
         </tbody>
       </table>
 

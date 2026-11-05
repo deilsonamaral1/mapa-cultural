@@ -16,11 +16,12 @@ export default function LoginPage() {
     setBusy(true);
     setError("");
     try {
-      const r = await api<{ access_token: string }>("/api/auth/login", {
+      const r = await api<{ access_token: string; role?: string }>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       });
       localStorage.setItem("token", r.access_token);
+      localStorage.setItem("role", r.role ?? "agent");
       router.replace("/admin/agentes");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha no login");
@@ -39,6 +40,9 @@ export default function LoginPage() {
         <button disabled={busy} className="w-full rounded bg-brand px-4 py-2 text-white disabled:opacity-50">
           {busy ? "Entrando…" : "Entrar"}
         </button>
+        <p className="text-center text-sm text-gray-600">
+          Agente cultural? <a href="/cadastro" className="text-brand-dark underline">Cadastre-se</a>
+        </p>
       </form>
     </main>
   );

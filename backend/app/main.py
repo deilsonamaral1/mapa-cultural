@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
-from app.routers import auth, content, public
+from app.routers import auth, content, moderation, public
 from app.routers import sync as sync_router
 from app.services.sync import run_sync
 
@@ -23,6 +23,7 @@ app.include_router(auth.router)
 app.include_router(content.agents)
 app.include_router(content.spaces)
 app.include_router(content.events)
+app.include_router(moderation.router)
 app.include_router(sync_router.router)
 
 

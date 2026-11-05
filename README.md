@@ -23,3 +23,13 @@ Mantida em **dry-run** por padrão (`SYNC_DRY_RUN=true`): nada é enviado. Para 
 é preciso um token emitido pela administração da instância de destino, com permissão de escrita,
 e confirmar o esquema de autenticação em `backend/app/services/mapas_client.py`.
 Apague os dados de exemplo antes de ligar o envio real.
+
+## Cadastro de agentes e moderação
+
+- `/cadastro`: qualquer pessoa cria conta (papel `agent`) e um perfil de agente **pendente**.
+- Cada agente vê e edita só o que é seu. Tudo que cria ou edita volta para **pendente** (status 0).
+- Administradores aprovam ou rejeitam em `/admin/moderacao`. Só o aprovado (status 1) aparece no
+  mapa e entra na sincronização. Espaços e eventos só podem ser aprovados depois do agente.
+- Metadados aceitos ficam em `backend/app/core/meta_keys.py` (lista fechada, também aplicada no envio).
+- Anti-spam atual: campo isca + limite de 5 cadastros/hora por IP, em memória. Para produção,
+  adicione verificação de e-mail e/ou captcha, e um limite no proxy.
