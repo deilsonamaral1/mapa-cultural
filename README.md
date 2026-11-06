@@ -9,7 +9,10 @@ com schema PostgreSQL/PostGIS inspirado no Mapas Culturais e módulo de sincroni
 
 ## Modo atual no Netlify (sem backend)
 
-O site público (`/`) lê **ao vivo** os Mapas Culturais de Aquiraz e do Ceará pela API pública deles,
+A tela inicial (`/`) é a página de boas-vindas; o mapa fica em `/mapa` (aceita `?tab=event|space|agent&q=busca`).
+Fotos opcionais do topo: `frontend/public/hero/1.jpg`, `2.jpg`, `3.jpg` (veja `LEIAME.txt` na pasta).
+
+O mapa lê **ao vivo** os Mapas Culturais de Aquiraz e do Ceará pela API pública deles,
 passando pelo proxy definido em `netlify.toml` (`/proxy/aquiraz/*` e `/proxy/estado/*`), o que evita
 bloqueio de CORS. O cadastro (`/cadastro`) leva ao cadastro oficial; quem publica lá aparece aqui.
 Não há banco nem servidor próprios nesse modo. O painel `/admin` e a pasta `backend/` só funcionam

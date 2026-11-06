@@ -1,0 +1,5 @@
+Coloque aqui 3 fotos da sua cidade com estes nomes exatos:
+  1.jpg  2.jpg  3.jpg
+Elas aparecem lado a lado no topo da pagina inicial. Sem as fotos, o site mostra um fundo colorido.
+Use imagens que voce tem direito de usar (fotos proprias ou liberadas pela prefeitura).
+Tamanho recomendado: cerca de 900 x 1100 px, ate 300 KB cada.

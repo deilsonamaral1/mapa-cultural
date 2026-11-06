@@ -46,6 +46,7 @@ export type Item = {
   city: string | null;
   startsAt: Date | null; // eventos
   endsAt: Date | null;
+  when: string | null; // texto da recorrência vindo do mapa oficial (ex.: "Sábado às 19h")
   url: string; // página oficial da entidade
 };
 
@@ -139,8 +140,39 @@ function base(source: SourceKey, kind: Kind, e: Record<string, any>): Item {
     city: txt(e.En_Municipio),
     startsAt: null,
     endsAt: null,
+    when: null,
     url: `${SOURCES[source].site}/${KINDS[kind].path}/${e.id}`,
   };
+}
+
+const hhmm = (v: unknown): string | null => {
+  const m = txt(v)?.match(/^(\d{1,2}):(\d{2})/);
+  return m ? `${m[1].padStart(2, "0")}:${m[2]}` : null;
+};
+const ymd = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/**
+ * A data de uma ocorrência fica em `rule` (formato do Mapas Culturais):
+ * startsOn "2026-11-08", startsAt "19:00" (hora), endsAt "21:00", frequency "once|daily|weekly|…",
+ * until "AAAA-MM-DD" e description (texto legível, ex.: "Sábado às 19h").
+ */
+function ruleWindow(rule: any): { start: Date | null; end: Date | null; text: string | null } {
+  if (!rule || typeof rule !== "object") return { start: null, end: null, text: null };
+  const text = txt(rule.description);
+  const on = txt(rule.startsOn)?.slice(0, 10) ?? null;
+  if (!on) return { start: toDate(rule.startsAt), end: toDate(rule.endsAt), text };
+
+  const until = txt(rule.until)?.slice(0, 10) ?? null;
+  const today = ymd(new Date());
+  let day = on;
+  // evento recorrente já em andamento: considera a ocorrência de hoje
+  if (rule.frequency && rule.frequency !== "once" && on < today && (!until || until >= today)) day = today;
+
+  const start = toDate(`${day}T${hhmm(rule.startsAt) ?? "00:00"}`);
+  let end = hhmm(rule.endsAt) ? toDate(`${day}T${hhmm(rule.endsAt)}`) : null;
+  if (start && end && end < start) end = new Date(end.getTime() + 86400000); // passa da meia-noite
+  return { start, end, text };
 }
 
 function normEvent(source: SourceKey, e: Record<string, any>): Item {
@@ -149,13 +181,14 @@ function normEvent(source: SourceKey, e: Record<string, any>): Item {
   const now = Date.now();
   // próxima ocorrência que ainda não terminou; se não houver, a primeira
   const dated = occs
-    .map((o) => ({ o, s: toDate(o.startsAt ?? o.starts ?? o.startsOn), f: toDate(o.endsAt ?? o.ends ?? o.endsOn) }))
-    .sort((a, b) => (a.s?.getTime() ?? Infinity) - (b.s?.getTime() ?? Infinity));
-  const next = dated.find((x) => ((x.f ?? x.s)?.getTime() ?? Infinity) >= now) ?? dated[0];
+    .map((o) => ({ o, ...ruleWindow(o?.rule ?? o) }))
+    .sort((a, b) => (a.start?.getTime() ?? Infinity) - (b.start?.getTime() ?? Infinity));
+  const next = dated.find((x) => ((x.end ?? x.start)?.getTime() ?? Infinity) >= now) ?? dated[0];
   const occ = next?.o ?? occs[0];
   if (next) {
-    item.startsAt = next.s;
-    item.endsAt = next.f;
+    item.startsAt = next.start;
+    item.endsAt = next.end;
+    item.when = next.text;
   }
   const space = occ?.space;
   if (space && typeof space === "object") {
@@ -170,10 +203,16 @@ function normEvent(source: SourceKey, e: Record<string, any>): Item {
 
 /* ------------------------------ consulta ------------------------------ */
 
-const SELECT: Record<Kind, { full: string; basic: string }> = {
-  agent: { full: "id,name,shortDescription,location,type,terms,En_Municipio", basic: "id,name,shortDescription,location" },
-  space: { full: "id,name,shortDescription,location,type,terms,En_Municipio", basic: "id,name,shortDescription,location" },
-  event: { full: "id,name,shortDescription,occurrences,terms", basic: "id,name,shortDescription,occurrences" },
+// Do mais completo ao mais simples: se o servidor recusar algum campo, tenta o próximo.
+// Para eventos, o formato `occurrences.{id,space.{...},rule}` é o da documentação oficial.
+const SELECT: Record<Kind, string[]> = {
+  agent: ["id,name,shortDescription,location,type,terms,En_Municipio", "id,name,shortDescription,location", "id,name"],
+  space: ["id,name,shortDescription,location,type,terms,En_Municipio", "id,name,shortDescription,location", "id,name"],
+  event: [
+    "id,name,shortDescription,terms,occurrences.{id,space.{id,name,location,En_Municipio},rule}",
+    "id,name,shortDescription,occurrences.{id,space.{name,location},rule}",
+    "id,name,shortDescription",
+  ],
 };
 
 const PAGE = 400;
@@ -212,7 +251,7 @@ async function fetchRows(
       "@page": page,
       "@keyword": q,
       status: "EQ(1)",
-      En_Municipio: municipio ? `ILIKE(*${municipio}*)` : undefined,
+      En_Municipio: municipio ? `LIKE(*${municipio}*)` : undefined,
     })}`;
   }
   const data = await getJSON(url, signal);
@@ -224,21 +263,19 @@ async function fetchRows(
 export async function fetchKind(source: SourceKey, kind: Kind, opts: FetchOpts): Promise<FetchResult> {
   const maxPages = source === "aquiraz" ? 5 : 1;
   const rows: any[] = [];
-  let select = SELECT[kind].full;
+  const chain = SELECT[kind];
+  let level = 0;
   let truncated = false;
 
   for (let page = 1; page <= maxPages; page++) {
     let chunk: any[];
-    try {
-      chunk = await fetchRows(source, kind, select, page, opts);
-    } catch (err) {
-      if (opts.signal?.aborted) throw err;
-      // campo extra recusado? tenta de novo só com o básico (e sem filtro de município)
-      if (select !== SELECT[kind].basic) {
-        select = SELECT[kind].basic;
-        chunk = await fetchRows(source, kind, select, page, { ...opts, municipio: undefined });
-      } else {
-        throw err;
+    for (;;) {
+      try {
+        chunk = await fetchRows(source, kind, chain[level], page, opts);
+        break;
+      } catch (err) {
+        if (opts.signal?.aborted || level >= chain.length - 1) throw err;
+        level++; // campo recusado pelo servidor: tenta a versão mais simples
       }
     }
     rows.push(...chunk);
