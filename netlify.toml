@@ -7,3 +7,17 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
+
+# Proxy para as APIs públicas dos Mapas Culturais oficiais.
+# O navegador chama /proxy/... no próprio site (mesma origem), então não há bloqueio de CORS.
+[[redirects]]
+  from = "/proxy/aquiraz/*"
+  to = "https://mapacultural.aquiraz.ce.gov.br/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/proxy/estado/*"
+  to = "https://mapacultural.secult.ce.gov.br/:splat"
+  status = 200
+  force = true

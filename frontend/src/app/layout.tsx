@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const city = process.env.NEXT_PUBLIC_CITY_NAME ?? "Nossa Cidade";
+const city = process.env.NEXT_PUBLIC_CITY_NAME ?? "Aquiraz";
 
 export const metadata: Metadata = {
   title: `Mapa Cultural de ${city}`,

@@ -7,6 +7,17 @@ com schema PostgreSQL/PostGIS inspirado no Mapas Culturais e módulo de sincroni
 - **backend/** FastAPI + SQLAlchemy (API, autenticação JWT, sincronização)
 - **backend/sql/** schema do banco (carregado automaticamente pelo docker compose)
 
+## Modo atual no Netlify (sem backend)
+
+O site público (`/`) lê **ao vivo** os Mapas Culturais de Aquiraz e do Ceará pela API pública deles,
+passando pelo proxy definido em `netlify.toml` (`/proxy/aquiraz/*` e `/proxy/estado/*`), o que evita
+bloqueio de CORS. O cadastro (`/cadastro`) leva ao cadastro oficial; quem publica lá aparece aqui.
+Não há banco nem servidor próprios nesse modo. O painel `/admin` e a pasta `backend/` só funcionam
+se o backend for publicado e `NEXT_PUBLIC_API_URL` for definida no Netlify.
+
+Variáveis opcionais no Netlify: `NEXT_PUBLIC_CITY_NAME`, `NEXT_PUBLIC_MAP_LAT`, `NEXT_PUBLIC_MAP_LNG`,
+`NEXT_PUBLIC_MAP_ZOOM`.
+
 ## Rodando localmente
 
 ```bash

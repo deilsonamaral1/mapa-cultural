@@ -6,3 +6,13 @@ body { @apply bg-white text-ink antialiased; }
 input, textarea, select { @apply w-full rounded border border-gray-300 px-3 py-2 text-sm; }
 input[type="checkbox"] { @apply w-auto; }
 label { @apply block text-sm font-medium text-gray-700; }
+
+/* ---- mapa: pinos, popups e clusters ---- */
+.mc-pin span { display: block; width: 24px; height: 24px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.45); }
+.mc-pop { font-size: 13px; line-height: 1.35; }
+.mc-pop strong { display: block; font-size: 14px; margin: 4px 0 2px; }
+.mc-pop p { margin: 4px 0; color: #4b5563; }
+.mc-pop a { color: #8a3216; font-weight: 600; }
+.mc-tag { display: inline-block; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; }
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(180, 69, 31, .28); }
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background-color: rgba(180, 69, 31, .9); color: #fff; font-weight: 700; }

@@ -1,4 +1,6 @@
-const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Em produção (Netlify) não há backend próprio: sem NEXT_PUBLIC_API_URL, o painel /admin avisa
+// em vez de tentar falar com localhost (que só existe no computador de quem desenvolve).
+const API = process.env.NEXT_PUBLIC_API_URL ?? (process.env.NODE_ENV === "production" ? "" : "http://localhost:8000");
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -7,6 +9,7 @@ export class ApiError extends Error {
 }
 
 export async function api<T>(path: string, init?: RequestInit): Promise<T> {
+  if (!API) throw new ApiError(0, "O painel próprio ainda não está ativado neste site (backend não configurado).");
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   const res = await fetch(`${API}${path}`, {
     ...init,
