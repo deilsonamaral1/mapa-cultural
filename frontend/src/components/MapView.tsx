@@ -27,6 +27,13 @@ type Props = {
 const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string);
 
+// o campo "site" é digitado por agentes: só aceita http(s), nunca javascript: e afins
+function safeUrl(v: string | null): string | null {
+  if (!v) return null;
+  const s = /^https?:\/\//i.test(v) ? v : /^[\w-]+(\.[\w-]+)+/.test(v) ? `https://${v}` : null;
+  return s && /^https?:\/\/[^\s"'<>]+$/i.test(s) ? s : null;
+}
+
 const icons: Partial<Record<Kind, L.DivIcon>> = {};
 function iconFor(kind: Kind) {
   return (icons[kind] ??= L.divIcon({
@@ -47,7 +54,9 @@ function popupHtml(it: Item) {
     ${it.place ? `<div>${esc(it.place)}</div>` : ""}
     ${it.startsAt ? `<div>${esc(fmtDate(it.startsAt))}</div>` : ""}
     ${desc ? `<p>${esc(desc)}</p>` : ""}
-    <a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">Abrir em ${esc(SOURCES[it.source].short)} ↗</a>
+    ${it.contact ? `<div>${esc(it.contact)}</div>` : ""}
+    ${safeUrl(it.site) ? `<a href="${esc(safeUrl(it.site)!)}" target="_blank" rel="noopener noreferrer">Site ou rede social ↗</a><br/>` : ""}
+    ${it.url ? `<a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">Abrir em ${esc(SOURCES[it.source].short)} ↗</a>` : ""}
   </div>`;
 }
 

@@ -8,9 +8,12 @@
  */
 
 export type Kind = "agent" | "space" | "event";
-export type SourceKey = "aquiraz" | "estado";
+export type SourceKey = "aquiraz" | "estado" | "local";
+/** Fontes lidas das APIs oficiais (a fonte "local" são os cadastros aprovados neste site, no Appwrite). */
+export type OfficialKey = Exclude<SourceKey, "local">;
 
 export const SOURCES: Record<SourceKey, { label: string; short: string; proxy: string; site: string }> = {
+  local: { label: "Cadastros deste site", short: "Site", proxy: "", site: "" },
   aquiraz: {
     label: "Mapa Cultural de Aquiraz",
     short: "Aquiraz",
@@ -47,7 +50,9 @@ export type Item = {
   startsAt: Date | null; // eventos
   endsAt: Date | null;
   when: string | null; // texto da recorrência vindo do mapa oficial (ex.: "Sábado às 19h")
-  url: string; // página oficial da entidade
+  site: string | null; // só cadastros deste site
+  contact: string | null; // só cadastros deste site
+  url: string; // página oficial da entidade ("" nos cadastros deste site)
 };
 
 export type FetchResult = { items: Item[]; truncated: boolean };
@@ -141,6 +146,8 @@ function base(source: SourceKey, kind: Kind, e: Record<string, any>): Item {
     startsAt: null,
     endsAt: null,
     when: null,
+    site: null,
+    contact: null,
     url: `${SOURCES[source].site}/${KINDS[kind].path}/${e.id}`,
   };
 }
@@ -224,7 +231,7 @@ function isoDay(d: Date) {
 export type FetchOpts = { q?: string; municipio?: string; signal?: AbortSignal };
 
 async function fetchRows(
-  source: SourceKey,
+  source: OfficialKey,
   kind: Kind,
   select: string,
   page: number,
@@ -260,7 +267,7 @@ async function fetchRows(
 }
 
 /** Busca um tipo de entidade em uma instância. Aquiraz é lida inteira (até 5 páginas); o estado, só a 1ª página. */
-export async function fetchKind(source: SourceKey, kind: Kind, opts: FetchOpts): Promise<FetchResult> {
+export async function fetchKind(source: OfficialKey, kind: Kind, opts: FetchOpts): Promise<FetchResult> {
   const maxPages = source === "aquiraz" ? 5 : 1;
   const rows: any[] = [];
   const chain = SELECT[kind];

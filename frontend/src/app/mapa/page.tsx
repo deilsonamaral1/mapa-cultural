@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
+import { fetchLocal } from "@/lib/local";
 import { KINDS, SOURCES, distanceKm, fetchKind, fmtDate, type Item, type Kind, type SourceKey } from "@/lib/mapas";
 import type { Focus } from "@/components/MapView";
 
@@ -27,7 +28,7 @@ export default function Home() {
   const [tab, setTab] = useState<Kind>("event");
   const [q, setQ] = useState("");
   const [municipio, setMunicipio] = useState("");
-  const [sources, setSources] = useState<Record<SourceKey, boolean>>({ aquiraz: true, estado: true });
+  const [sources, setSources] = useState<Record<SourceKey, boolean>>({ aquiraz: true, estado: true, local: true });
   const [period, setPeriod] = useState<(typeof PERIODS)[number]["key"]>("all");
   const [items, setItems] = useState<Item[]>([]);
   const [status, setStatus] = useState<Partial<Record<SourceKey, Status>>>({});
@@ -61,7 +62,11 @@ export default function Home() {
     setStatus(Object.fromEntries(active.map((k) => [k, { state: "loading" } as Status])));
     const timer = setTimeout(async () => {
       const results = await Promise.allSettled(
-        active.map((k) => fetchKind(k, tab, { q: q.trim(), municipio: k === "estado" ? municipio.trim() : "", signal: ctrl.signal })),
+        active.map((k) =>
+          k === "local"
+            ? fetchLocal(tab, { q: q.trim() })
+            : fetchKind(k, tab, { q: q.trim(), municipio: k === "estado" ? municipio.trim() : "", signal: ctrl.signal }),
+        ),
       );
       if (ctrl.signal.aborted) return;
       const all: Item[] = [];
@@ -248,9 +253,11 @@ export default function Home() {
                           ))}
                           {km != null && <span>{km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`}</span>}
                           {it.lat == null && <span>sem localização</span>}
-                          <a href={it.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-auto font-medium text-brand-dark hover:underline">
-                            Ver no mapa oficial ↗
-                          </a>
+                          {it.url && (
+                            <a href={it.url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="ml-auto font-medium text-brand-dark hover:underline">
+                              Ver no mapa oficial ↗
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>

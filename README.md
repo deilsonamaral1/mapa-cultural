@@ -7,6 +7,42 @@ com schema PostgreSQL/PostGIS inspirado no Mapas Culturais e módulo de sincroni
 - **backend/** FastAPI + SQLAlchemy (API, autenticação JWT, sincronização)
 - **backend/sql/** schema do banco (carregado automaticamente pelo docker compose)
 
+## Cadastro, login e aprovação (Appwrite)
+
+Agentes e administração usam o **Appwrite** (Auth + Databases). Não há backend próprio para hospedar.
+
+| Tela | Quem | O que faz |
+|---|---|---|
+| `/cadastro`, `/entrar` | qualquer pessoa | cria conta e entra |
+| `/painel` | agente logado | cria, edita e acompanha cadastros (agente, espaço, evento) |
+| `/admin` | conta com o rótulo `admin` | aprova, rejeita (com motivo) ou tira do mapa |
+| `/mapa` | público | mostra os mapas oficiais **e** os cadastros aprovados (filtro "Site") |
+
+**Como a segurança funciona.** Há duas coleções. Em `submissions` qualquer pessoa logada cria, e cada agente só
+vê os próprios envios. Em `published` o público só lê, e **somente o rótulo `admin` grava**. Aprovar é copiar o
+envio para `published`; por isso ninguém consegue se aprovar sozinho. Editar um cadastro volta o status para pendente.
+
+**Configuração (uma vez):**
+1. No Appwrite, crie uma **chave de API** com escopo de banco de dados (leitura e escrita) e rode, no seu computador:
+   ```bash
+   cd appwrite && npm install
+   APPWRITE_API_KEY=sua_chave node setup.mjs     # PowerShell: $env:APPWRITE_API_KEY="sua_chave"; node setup.mjs
+   ```
+   A chave é segredo: nunca coloque no GitHub, no Netlify ou em conversas. Apague-a depois de usar.
+2. Appwrite → Overview → **Plataformas → Web**: adicione `mapaculturalaquiraz.netlify.app` (sem isso o navegador
+   é bloqueado e aparece "Failed to fetch").
+3. Cadastre-se no site, depois no Appwrite → Auth → seu usuário → **Labels** → adicione `admin`. Saia e entre de novo.
+
+Endereço e IDs do projeto estão em `frontend/src/lib/appwrite.ts` (não são segredo) e podem ser trocados pelas
+variáveis `NEXT_PUBLIC_APPWRITE_ENDPOINT`, `NEXT_PUBLIC_APPWRITE_PROJECT_ID` e `NEXT_PUBLIC_APPWRITE_DATABASE_ID`.
+
+**Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
+(depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração
+precisa tirá-lo do mapa em `/admin`; a verificação de e-mail do Appwrite ainda não está exigida.
+
+> O painel antigo (`/admin/*` ligado ao FastAPI) foi removido do site. A pasta `backend/` continua no repositório,
+> mas não é usada pelo site publicado.
+
 ## Modo atual no Netlify (sem backend)
 
 A tela inicial (`/`) é a página de boas-vindas; o mapa fica em `/mapa` (aceita `?tab=event|space|agent&q=busca`).
@@ -14,9 +50,7 @@ Fotos opcionais do topo: `frontend/public/hero/1.jpg`, `2.jpg`, `3.jpg` (veja `L
 
 O mapa lê **ao vivo** os Mapas Culturais de Aquiraz e do Ceará pela API pública deles,
 passando pelo proxy definido em `netlify.toml` (`/proxy/aquiraz/*` e `/proxy/estado/*`), o que evita
-bloqueio de CORS. O cadastro (`/cadastro`) leva ao cadastro oficial; quem publica lá aparece aqui.
-Não há banco nem servidor próprios nesse modo. O painel `/admin` e a pasta `backend/` só funcionam
-se o backend for publicado e `NEXT_PUBLIC_API_URL` for definida no Netlify.
+bloqueio de CORS. Quem publica nos mapas oficiais aparece aqui automaticamente.
 
 Variáveis opcionais no Netlify: `NEXT_PUBLIC_CITY_NAME`, `NEXT_PUBLIC_MAP_LAT`, `NEXT_PUBLIC_MAP_LNG`,
 `NEXT_PUBLIC_MAP_ZOOM`.

@@ -1,53 +1,65 @@
+"use client";
+
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { ID, account, errMsg } from "@/lib/appwrite";
 import { SOURCES } from "@/lib/mapas";
 
-export const metadata = { title: "Cadastre-se · Mapa Cultural" };
-
-const steps = [
-  "Crie sua conta no Mapa Cultural oficial (botão abaixo).",
-  "No painel, abra “Meus Agentes” e preencha o perfil do agente, espaço ou evento.",
-  "Quando o cadastro for publicado, ele passa a aparecer aqui automaticamente.",
-];
-
 export default function CadastroPage() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [website, setWebsite] = useState(""); // campo isca: pessoas não veem, robôs preenchem
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (website) return; // robô: não faz nada
+    setBusy(true);
+    setError("");
+    try {
+      await account.create(ID.unique(), email.trim().toLowerCase(), password, name.trim());
+      await account.createEmailPasswordSession(email.trim().toLowerCase(), password);
+      router.replace("/painel");
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <main className="grid min-h-screen place-items-center bg-brand-soft p-4">
-      <div className="w-full max-w-md space-y-5 rounded-lg bg-white p-6 shadow">
+      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-lg bg-white p-6 shadow">
         <h1 className="text-xl font-semibold text-brand-dark">Cadastre-se como agente cultural</h1>
         <p className="text-sm text-gray-600">
-          Este mapa é alimentado pelos Mapas Culturais oficiais. Por isso o cadastro é feito direto neles:
-          você cria a conta uma vez e seu perfil aparece aqui e no mapa oficial.
+          Crie sua conta, cadastre seu perfil, espaço ou evento e acompanhe o status. Tudo passa por aprovação da equipe antes de aparecer no mapa.
         </p>
-
-        <ol className="list-decimal space-y-1.5 pl-5 text-sm text-gray-700">
-          {steps.map((s) => (
-            <li key={s}>{s}</li>
-          ))}
-        </ol>
-
-        <div className="space-y-2">
-          <a
-            href={`${SOURCES.aquiraz.site}/autenticacao/`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full rounded bg-brand px-4 py-2.5 text-center font-medium text-white hover:bg-brand-dark"
-          >
-            Cadastrar no Mapa Cultural de Aquiraz
-          </a>
-          <a
-            href={`${SOURCES.estado.site}/autenticacao/`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full rounded border border-brand px-4 py-2.5 text-center font-medium text-brand-dark hover:bg-brand-soft"
-          >
-            Cadastrar no Mapa Cultural do Ceará
-          </a>
+        <div><label>Nome do agente ou coletivo<input required minLength={2} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" /></label></div>
+        <div><label>E-mail<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" /></label></div>
+        <div><label>Senha (mín. 8 caracteres)<input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" /></label></div>
+        {/* honeypot */}
+        <div className="absolute left-[-9999px]" aria-hidden="true">
+          <label>Site<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
         </div>
-
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+        <button disabled={busy} className="w-full rounded bg-brand px-4 py-2 text-white disabled:opacity-50">
+          {busy ? "Criando…" : "Criar cadastro"}
+        </button>
         <p className="text-center text-sm text-gray-600">
-          <Link href="/" className="text-brand-dark underline">← Voltar ao mapa</Link>
+          Já tem conta? <Link href="/entrar" className="text-brand-dark underline">Entrar</Link>
         </p>
-      </div>
+        <p className="border-t pt-3 text-center text-xs text-gray-500">
+          Prefere cadastrar direto nos mapas oficiais?{" "}
+          <a className="underline" href={`${SOURCES.aquiraz.site}/autenticacao/`} target="_blank" rel="noopener noreferrer">Aquiraz</a>
+          {" · "}
+          <a className="underline" href={`${SOURCES.estado.site}/autenticacao/`} target="_blank" rel="noopener noreferrer">Ceará</a>
+        </p>
+        <p className="text-center text-sm"><Link href="/" className="text-brand-dark underline">← Voltar ao início</Link></p>
+      </form>
     </main>
   );
 }

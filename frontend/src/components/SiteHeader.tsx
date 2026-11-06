@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { SOURCES } from "@/lib/mapas";
+import { useUser } from "@/lib/useUser";
 
 const official = SOURCES.aquiraz.site;
 
@@ -11,6 +14,8 @@ const NAV = [
   { label: "Projetos", icon: "📋", href: `${official}/busca/##(global:(enabled:(project:!t),filterEntity:project))`, external: true },
   { label: "Oportunidades", icon: "💡", href: `${official}/busca/##(global:(enabled:(opportunity:!t),filterEntity:opportunity))`, external: true },
 ] as const;
+
+const ITEM = "flex min-w-[68px] flex-col items-center justify-center gap-0.5 px-2.5 py-2 hover:bg-gray-50 sm:min-w-[84px]";
 
 export function Logo() {
   return (
@@ -35,6 +40,8 @@ export function Logo() {
 }
 
 export default function SiteHeader() {
+  const { user, loading, isAdmin, logout } = useUser();
+
   return (
     <header className="z-20 flex shrink-0 items-stretch justify-between gap-2 border-b bg-white px-4 shadow-sm">
       <div className="flex items-center py-2">
@@ -42,28 +49,50 @@ export default function SiteHeader() {
       </div>
 
       <nav className="flex min-w-0 items-stretch overflow-x-auto text-xs font-semibold text-gray-800">
-        {NAV.map((n) => {
-          const cls = "flex min-w-[68px] flex-col items-center justify-center gap-0.5 px-2.5 py-2 hover:bg-gray-50 sm:min-w-[84px]";
-          const inner = (
-            <>
-              <span aria-hidden className="text-lg leading-none">{n.icon}</span>
-              <span>{n.label}</span>
-            </>
-          );
+        {NAV.map((n) => (
           // <a> comum nos links do mapa: a página /mapa lê ?tab= ao abrir
-          return n.external ? (
-            <a key={n.label} href={n.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>
-          ) : (
-            <a key={n.label} href={n.href} className={cls}>{inner}</a>
-          );
-        })}
-        <a href={`${official}/autenticacao/`} target="_blank" rel="noopener noreferrer" className="flex min-w-[68px] flex-col items-center justify-center gap-0.5 px-2.5 py-2 hover:bg-gray-50 sm:min-w-[84px]">
-          <span aria-hidden className="text-lg leading-none">🔒</span>
-          <span>Entrar</span>
-        </a>
-        <Link href="/cadastro" className="my-2 ml-2 flex items-center self-center whitespace-nowrap rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
-          Cadastre-se
-        </Link>
+          <a key={n.label} href={n.href} className={ITEM} {...(n.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+            <span aria-hidden className="text-lg leading-none">{n.icon}</span>
+            <span>{n.label}</span>
+          </a>
+        ))}
+
+        {!loading && user && (
+          <>
+            {isAdmin && (
+              <Link href="/admin" className={ITEM}>
+                <span aria-hidden className="text-lg leading-none">🛡️</span>
+                <span>Aprovações</span>
+              </Link>
+            )}
+            <Link href="/painel" className={ITEM}>
+              <span aria-hidden className="text-lg leading-none">🗂️</span>
+              <span>Meu painel</span>
+            </Link>
+            <button
+              onClick={async () => {
+                await logout();
+                window.location.href = "/";
+              }}
+              className={ITEM}
+            >
+              <span aria-hidden className="text-lg leading-none">🚪</span>
+              <span>Sair</span>
+            </button>
+          </>
+        )}
+
+        {!loading && !user && (
+          <>
+            <Link href="/entrar" className={ITEM}>
+              <span aria-hidden className="text-lg leading-none">🔒</span>
+              <span>Entrar</span>
+            </Link>
+            <Link href="/cadastro" className="my-2 ml-2 flex items-center self-center whitespace-nowrap rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
+              Cadastre-se
+            </Link>
+          </>
+        )}
       </nav>
     </header>
   );
