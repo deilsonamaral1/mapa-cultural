@@ -1,13 +1,13 @@
 "use client";
 
 import EntityCrud, { Field } from "@/components/EntityCrud";
-import { SPACE_TYPES } from "@/lib/spaceTypes";
+import { SPACE_TYPE_OPTIONS } from "@/lib/mapasTypes";
 
 const fields: Field[] = [
   { name: "name", label: "Nome do espaço", type: "text", required: true },
   { name: "agent_id", label: "Agente responsável", type: "ref", refEndpoint: "/api/agents", required: true },
   // IDs oficiais do Mapas Culturais (gerados de src/conf/space-types.php)
-  { name: "type", label: "Tipo", type: "select", options: SPACE_TYPES },
+  { name: "type", label: "Tipo", type: "select", options: SPACE_TYPE_OPTIONS },
   { name: "short_description", label: "Descrição curta (obrigatória para publicar, até 400 caracteres)", type: "textarea", maxLength: 400 },
   { name: "long_description", label: "Descrição completa", type: "textarea" },
   { name: "latitude", label: "Latitude (obrigatória para publicar)", type: "number" },

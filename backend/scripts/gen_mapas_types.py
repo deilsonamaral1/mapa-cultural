@@ -45,7 +45,8 @@ def main(conf: str, out_py: str, out_ts: str) -> None:
     Path(out_py).write_text(
         '"""GERADO por scripts/gen_mapas_types.py a partir de secultce/mapacultural. Não edite à mão."""\n'
         f"SPACE_TYPES: dict[int, str] = {as_dict(space_map)}\n\n"
-        f"AGENT_TYPES: dict[int, str] = {as_dict(agent_map)}\n",
+        f"AGENT_TYPES: dict[int, str] = {as_dict(agent_map)}\n\n"
+        'EVENT_TYPES: dict[int, str] = {1: "Padrão"}  # event-types.php define só o tipo 1\n',
         encoding="utf-8",
     )
     Path(out_ts).write_text(

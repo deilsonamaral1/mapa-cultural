@@ -50,6 +50,9 @@ def to_form(payload: dict) -> list[tuple[str, str]]:
             continue
         if isinstance(value, dict):
             out.extend((f"{key}[{k}]", str(v)) for k, v in value.items() if v is not None)
+        elif isinstance(value, (list, tuple)):
+            # `location => [lng, lat]` vira location[0]=lng&location[1]=lat (como o curl do PHP)
+            out.extend((f"{key}[{i}]", str(v)) for i, v in enumerate(value) if v is not None)
         elif isinstance(value, bool):
             out.append((key, "1" if value else "0"))
         else:

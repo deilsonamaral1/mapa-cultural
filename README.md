@@ -40,7 +40,9 @@ Pontos que **precisam de confirmação com a administração de cada instância*
   (`src/modules/Apps/Module.php`) está **comentado**. A API de escrita pode estar inativa na versão que
   Aquiraz/Secult-CE executam.
 - Se a instância usa tipos, metadados obrigatórios ou taxonomias (área, linguagem) personalizados.
-- Se o corpo JSON é aceito nas requisições de escrita (a documentação mostra formulário).
+- O envio usa corpo de formulário, como nos exemplos da documentação. O JWT é gerado sem `-`/`_`
+  no payload (`backend/app/services/mapas_auth.py`), porque o servidor decodifica com `base64_decode`
+  não estrito e perderia a chave pública.
 
 Apague os dados de exemplo antes de ligar o envio real. Se você já subiu o banco antes desta
 versão, recrie-o para aplicar o novo schema: `docker compose down -v && docker compose up -d`.
