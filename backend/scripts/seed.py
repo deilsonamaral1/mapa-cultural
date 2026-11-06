@@ -29,12 +29,12 @@ def main() -> None:
         db.flush()
 
         if os.environ.get("SEED_SAMPLE", "1") == "1":
-            ag = Agent(user_id=admin.id, name="Coletivo Exemplo", type=2,
+            ag = Agent(user_id=admin.id, name="Coletivo Exemplo", type=2, public_location=True,
                        short_description="Agente de exemplo — apague depois.",
                        latitude=-3.9014, longitude=-38.3892)
             db.add(ag)
             db.flush()
-            sp = Space(agent_id=ag.id, type=1, name="Casa de Cultura (exemplo)",
+            sp = Space(agent_id=ag.id, type=40, name="Casa de Cultura (exemplo)",  # 40 = Centro Cultural Público
                        short_description="Espaço de exemplo.",
                        latitude=-3.9020, longitude=-38.3880)
             db.add(sp)

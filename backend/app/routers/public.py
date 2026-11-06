@@ -39,7 +39,8 @@ def search(
         ]
 
     if type == "space":
-        stmt = select(Space).where(Space.status == 1, Space.public.is_(True))
+        # `Space.public` no Mapas = "aberto a eventos de qualquer agente"; não controla visibilidade
+        stmt = select(Space).where(Space.status == 1)
         if q:
             stmt = stmt.where(Space.name.ilike(_like(q), escape="\\"))
         return [
@@ -62,7 +63,7 @@ def search(
             "id": e.id, "name": e.name, "type": e.type, "description": e.short_description,
             "starts_at": occ.starts_at.isoformat() if occ and occ.starts_at else None,
             "place": space.name if space else None,
-            "latitude": space.latitude if space and space.public else None,
-            "longitude": space.longitude if space and space.public else None,
+            "latitude": space.latitude if space and space.status == 1 else None,
+            "longitude": space.longitude if space and space.status == 1 else None,
         })
     return sorted(out, key=lambda x: x["starts_at"] or "9999")

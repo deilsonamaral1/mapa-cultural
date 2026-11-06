@@ -1,7 +1,7 @@
 """Usuários do painel, eventos e ocorrências."""
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, SmallInteger, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, SmallInteger, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
@@ -48,4 +48,12 @@ class EventOccurrence(Base):
     ends_at: Mapped[datetime | None] = mapped_column(DateTime)
     frequency: Mapped[str | None] = mapped_column(String(32))
     timezone_name: Mapped[str] = mapped_column(String(64), default="America/Fortaleza")
+    # colunas do event_occurrence do Mapas Culturais; `rule` guarda o JSON da regra de recorrência
+    separation: Mapped[int] = mapped_column(Integer, default=1, server_default="1")
+    count: Mapped[int | None] = mapped_column(Integer)
+    until: Mapped[date | None] = mapped_column(Date)
+    description: Mapped[str | None] = mapped_column(Text)
+    price: Mapped[str | None] = mapped_column(Text)
+    price_info: Mapped[str | None] = mapped_column("priceInfo", Text)
+    rule: Mapped[str] = mapped_column(Text, default="", server_default="")
     status: Mapped[int] = mapped_column(SmallInteger, default=1)

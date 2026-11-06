@@ -31,7 +31,7 @@ class Agent(Base):
     update_timestamp: Mapped[datetime | None] = mapped_column(DateTime, onupdate=datetime.utcnow)
     status: Mapped[int] = mapped_column(SmallInteger, default=1)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    public_location: Mapped[bool] = mapped_column(Boolean, default=True)
+    public_location: Mapped[bool] = mapped_column(Boolean, default=False)  # padrão do Mapas
 
     meta: Mapped[list["AgentMeta"]] = relationship(cascade="all, delete-orphan")
 
@@ -62,7 +62,7 @@ class Space(Base):
     update_timestamp: Mapped[datetime | None] = mapped_column(DateTime, onupdate=datetime.utcnow)
     status: Mapped[int] = mapped_column(SmallInteger, default=1)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    public: Mapped[bool] = mapped_column(Boolean, default=True)
+    public: Mapped[bool] = mapped_column(Boolean, default=False)  # aberto a eventos de qualquer agente
 
     meta: Mapped[list["SpaceMeta"]] = relationship(cascade="all, delete-orphan")
 
@@ -83,7 +83,7 @@ class SyncTarget(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True)
     base_url: Mapped[str] = mapped_column(String(255))
-    auth_mode: Mapped[str] = mapped_column(String(32), default="bearer")
+    auth_mode: Mapped[str] = mapped_column(String(32), default="jwt")
     enabled: Mapped[bool] = mapped_column(Boolean, default=False)
 
 

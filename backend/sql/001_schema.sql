@@ -13,7 +13,10 @@ CREATE TABLE app_user (
     created_at    TIMESTAMP NOT NULL DEFAULT now()
 );
 
--- status no Mapas: 0 rascunho, 1 publicado, -1 lixeira, -2 arquivado, -5 pendente
+-- status no Mapas (Entity.php): 1 publicado, 0 rascunho, -2 arquivado, -9 desabilitado, -10 lixeira.
+-- (em agent, -1 = "relacionado" e -2 = "convidado": por isso a lixeira é -10, nunca -1)
+-- Neste sistema: 0 = pendente de moderação.
+-- Referência de colunas/tipos: secultce/mapacultural, src/core/Entities/*.php e src/conf/*-types.php.
 CREATE TABLE agent (
     id                SERIAL PRIMARY KEY,
     parent_id         INTEGER REFERENCES agent(id) ON DELETE SET NULL,
@@ -32,7 +35,7 @@ CREATE TABLE agent (
     update_timestamp  TIMESTAMP,
     status            SMALLINT NOT NULL DEFAULT 1,
     is_verified       BOOLEAN NOT NULL DEFAULT FALSE,
-    public_location   BOOLEAN DEFAULT TRUE
+    public_location   BOOLEAN DEFAULT FALSE                   -- padrão do Mapas: privada
 );
 CREATE INDEX agent_geo_idx ON agent USING GIST (_geo_location);
 CREATE INDEX agent_status_idx ON agent (status);
@@ -65,7 +68,7 @@ CREATE TABLE space (
     update_timestamp  TIMESTAMP,
     status            SMALLINT NOT NULL DEFAULT 1,
     is_verified       BOOLEAN NOT NULL DEFAULT FALSE,
-    public            BOOLEAN NOT NULL DEFAULT TRUE
+    public            BOOLEAN NOT NULL DEFAULT FALSE          -- aberto a eventos de qualquer agente
 );
 CREATE INDEX space_geo_idx ON space USING GIST (_geo_location);
 
@@ -101,6 +104,13 @@ CREATE TABLE event_occurrence (
     starts_at     TIMESTAMP,
     ends_at       TIMESTAMP,
     frequency     VARCHAR(32),
+    separation    INTEGER NOT NULL DEFAULT 1,
+    count         INTEGER,
+    until         DATE,
+    description   TEXT,
+    price         TEXT,
+    "priceInfo"   TEXT,
+    rule          TEXT NOT NULL DEFAULT '',                 -- JSON da regra (startsOn, startsAt, duration, frequency...)
     timezone_name VARCHAR(64) NOT NULL DEFAULT 'America/Fortaleza',
     status        SMALLINT NOT NULL DEFAULT 1
 );
@@ -142,13 +152,26 @@ CREATE TRIGGER agent_fill_geo BEFORE INSERT OR UPDATE ON agent
 CREATE TRIGGER space_fill_geo BEFORE INSERT OR UPDATE ON space
   FOR EACH ROW EXECUTE FUNCTION fill_geo();
 
+-- Regras do Mapas (getValidations): shortDescription obrigatória e de até 400 caracteres;
+-- location é NOT NULL no Mapas. Aqui rascunhos/pendentes podem estar incompletos, mas nada
+-- incompleto pode ser publicado (status 1), porque a instância oficial recusaria o envio.
+ALTER TABLE agent ADD CONSTRAINT agent_publicado_completo CHECK (
+  status <> 1 OR (COALESCE(btrim(short_description), '') <> '' AND latitude IS NOT NULL AND longitude IS NOT NULL));
+ALTER TABLE space ADD CONSTRAINT space_publicado_completo CHECK (
+  status <> 1 OR (COALESCE(btrim(short_description), '') <> '' AND latitude IS NOT NULL AND longitude IS NOT NULL));
+ALTER TABLE event ADD CONSTRAINT event_publicado_completo CHECK (
+  status <> 1 OR COALESCE(btrim(short_description), '') <> '');
+ALTER TABLE agent ADD CONSTRAINT agent_short_desc_len CHECK (char_length(short_description) <= 400);
+ALTER TABLE space ADD CONSTRAINT space_short_desc_len CHECK (char_length(short_description) <= 400);
+ALTER TABLE event ADD CONSTRAINT event_short_desc_len CHECK (char_length(short_description) <= 400);
+
 -- ===== Controle da sincronização (exclusivo deste sistema) =====
 
 CREATE TABLE sync_target (
     id          SERIAL PRIMARY KEY,
     name        VARCHAR(100) UNIQUE NOT NULL,      -- ex.: 'aquiraz', 'estado-ce'
     base_url    VARCHAR(255) NOT NULL,
-    auth_mode   VARCHAR(32) NOT NULL DEFAULT 'bearer',
+    auth_mode   VARCHAR(32) NOT NULL DEFAULT 'jwt',   -- App do Mapas: JWT (chave pública + privada)
     enabled     BOOLEAN NOT NULL DEFAULT FALSE     -- só liga depois de ter autorização
 );
 

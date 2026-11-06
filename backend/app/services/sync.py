@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.models.entities import Agent, Space, SyncLog, SyncState, SyncTarget
 from app.services.mapas_client import MapasClient
-from app.services.mapper import agent_payload, content_hash, space_payload
+from app.services.mapper import agent_payload, content_hash, missing_fields, space_payload
 
 
 @dataclass
@@ -57,7 +57,13 @@ def _push_one(db: Session, client: MapasClient, target: SyncTarget, entity: str,
         report.skipped += 1
         return
 
-    method = "PUT" if st.remote_id else "POST"
+    method = "PATCH" if st.remote_id else "POST"
+
+    problems = missing_fields(entity, payload)
+    if problems:  # não adianta enviar: o Mapas recusaria
+        st.status, st.last_error = "error", "Incompleto para o Mapas: " + ", ".join(problems)
+        report.errors.append(f"{entity}#{local_id}: {st.last_error}")
+        return
 
     if dry_run:
         db.add(SyncLog(target_id=target.id, entity_type=entity, local_id=local_id,
@@ -71,11 +77,13 @@ def _push_one(db: Session, client: MapasClient, target: SyncTarget, entity: str,
         db.add(SyncLog(target_id=target.id, entity_type=entity, local_id=local_id,
                        method=method, http_status=res.status_code, dry_run=False))
 
-        if res.status_code in (200, 201) and isinstance(res.body, dict):
+        ok = (res.status_code in (200, 201) and isinstance(res.body, dict)
+              and not res.body.get("error") and res.body.get("id"))
+        if ok:
             st.remote_id = st.remote_id or res.body.get("id")
             st.content_hash, st.status, st.last_error = h, "synced", None
             st.last_synced_at = datetime.utcnow()
-            report.updated += method == "PUT"
+            report.updated += method == "PATCH"
             report.created += method == "POST"
         else:
             st.status, st.last_error = "error", f"HTTP {res.status_code}: {str(res.body)[:500]}"
@@ -95,7 +103,7 @@ def run_sync(db: Session, only_target: str | None = None,
         if only_target and name != only_target:
             continue
         target = _get_target(db, name, cfg["base_url"])
-        client = MapasClient(cfg["base_url"], cfg["token"], target.auth_mode)
+        client = MapasClient(cfg["base_url"], cfg["public_key"], cfg["private_key"])
         report = SyncReport(target=name, dry_run=dry)
 
         try:

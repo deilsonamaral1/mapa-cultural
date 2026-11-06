@@ -10,7 +10,8 @@ from app.db.session import get_db
 from app.models.cms import Event, User
 from app.models.entities import Agent, Space
 from app.routers.content import (
-    STATUS_PENDING, STATUS_PUBLISHED, STATUS_TRASH, agent_dict, event_dict, space_dict,
+    STATUS_PENDING, STATUS_PUBLISHED, STATUS_TRASH, agent_dict, event_dict, publish_problems,
+    space_dict,
 )
 
 router = APIRouter(prefix="/api/moderation", tags=["moderação"],
@@ -48,6 +49,12 @@ def decide(kind: Literal["agents", "spaces", "events"], item_id: int,
             parent = db.get(Agent, obj.agent_id)
             if not parent or parent.status != STATUS_PUBLISHED:
                 raise HTTPException(422, "Aprove primeiro o agente responsável")
+        # o Mapas exige descrição curta (e localização, para agente/espaço): sem isso o envio falharia
+        missing = publish_problems(obj.short_description, getattr(obj, "latitude", None),
+                                   getattr(obj, "longitude", None),
+                                   needs_location=kind != "events")
+        if missing:
+            raise HTTPException(422, "Cadastro incompleto. Falta: " + ", ".join(missing))
         obj.status = STATUS_PUBLISHED
     else:
         obj.status = STATUS_TRASH

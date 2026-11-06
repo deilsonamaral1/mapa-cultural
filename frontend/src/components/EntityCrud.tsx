@@ -11,6 +11,7 @@ export type Field = {
   refEndpoint?: string; // para type "ref": carrega opções de /api/agents etc.
   meta?: boolean;        // grava dentro de `meta` (agent_meta / space_meta)
   required?: boolean;
+  maxLength?: number;
 };
 
 type Row = Record<string, any>;
@@ -137,9 +138,11 @@ export default function EntityCrud({
                   <label>
                     {f.label}
                     {f.type === "textarea" ? (
-                      <textarea rows={3} value={get(f)} required={f.required} onChange={(e) => set(f, e.target.value)} />
+                      <textarea rows={3} value={get(f)} required={f.required} maxLength={f.maxLength}
+                        onChange={(e) => set(f, e.target.value)} />
                     ) : f.type === "select" ? (
-                      <select value={get(f)} onChange={(e) => set(f, Number(e.target.value))}>
+                      <select value={get(f)}
+                        onChange={(e) => set(f, typeof f.options![0].value === "number" ? Number(e.target.value) : e.target.value)}>
                         {f.options!.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     ) : f.type === "ref" ? (
