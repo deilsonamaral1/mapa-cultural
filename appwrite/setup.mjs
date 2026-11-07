@@ -113,14 +113,26 @@ async function waitAvailable(collectionId) {
   throw new Error(`Os atributos de ${collectionId} demoraram demais para ficar prontos. Rode o script de novo.`);
 }
 
-for (const c of COLLECTIONS) {
-  console.log(`\nColeção ${c.id}`);
-  await once(`coleção ${c.id}`, () => db.createCollection(databaseId, c.id, c.name, c.permissions, c.documentSecurity));
-  for (const a of c.attributes) await addAttribute(c, a);
-  await waitAvailable(c.id);
-  for (const ix of c.indexes) {
-    await once(`índice ${ix.key}`, () => db.createIndex(databaseId, c.id, ix.key, IndexType.Key, ix.attributes));
+try {
+  for (const c of COLLECTIONS) {
+    console.log(`\nColeção ${c.id}`);
+    await once(`coleção ${c.id}`, () => db.createCollection(databaseId, c.id, c.name, c.permissions, c.documentSecurity));
+    for (const a of c.attributes) await addAttribute(c, a);
+    await waitAvailable(c.id);
+    for (const ix of c.indexes) {
+      await once(`índice ${ix.key}`, () => db.createIndex(databaseId, c.id, ix.key, IndexType.Key, ix.attributes));
+    }
   }
+} catch (e) {
+  const msg = String(e?.message ?? e);
+  console.error("\nERRO:", msg);
+  if (/scope|unauthori|401|missing/i.test(msg)) {
+    console.error("A chave de API não tem permissão suficiente. No Appwrite, crie outra chave marcando TODOS os escopos de");
+    console.error("Databases (databases, collections, attributes, indexes e documents, leitura e escrita) e rode de novo.");
+  } else if (/not be found|404/i.test(msg)) {
+    console.error("Confira se o Project ID e o Database ID estão certos (veja as variáveis no topo do arquivo).");
+  }
+  process.exit(1);
 }
 
 console.log("\nPronto. Próximos passos:");
