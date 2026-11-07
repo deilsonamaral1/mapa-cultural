@@ -34,6 +34,8 @@ rejeita e promove outros administradores. A chave "anon" do site é pública por
 5. Crie sua conta em `/cadastro` e, no SQL Editor, rode **uma vez**:
    `update public.mc_perfis set papel = 'admin' where email = 'seu-email@exemplo.com';`
 
+6. **Fotos:** cole também o `supabase/fotos.sql` no SQL Editor e rode (cria o bucket público `mc-fotos`, 5 MB por foto, e as regras: cada pessoa só grava na própria pasta). Os vídeos ficam no YouTube e só aparecem em player dentro do site (`/ver`).
+
 Depois disso, novos administradores são promovidos dentro do site (Administração, aba Equipe).
 Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa precisa confirmar o e-mail antes de entrar
 (o envio padrão do Supabase tem limite baixo de e-mails por hora).

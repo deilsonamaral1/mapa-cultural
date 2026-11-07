@@ -6,6 +6,7 @@ import type { SubmitKind } from "@/lib/mapas";
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://xzapghpkyrxbyhbrlppi.supabase.co";
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_Ht4Nn35DbazdDsQ1TLOcAQ_RdOQuPRu";
 
+export const SUPABASE_URL = URL;
 export const supabaseConfigured = Boolean(URL && KEY);
 
 // Valores de reserva só para o site abrir (e o build passar) antes de você configurar.
@@ -32,6 +33,8 @@ export type EntryData = {
   endsAt?: string | null;
   site?: string | null;
   contact?: string | null;
+  photos?: string[]; // links públicos no bucket mc-fotos
+  videos?: string[]; // links do YouTube
 };
 
 export type Submission = EntryData & {
@@ -46,12 +49,12 @@ export type Submission = EntryData & {
 /** Só estes campos vão para a tabela pública (nada de dono, status ou nota interna). */
 export const PUBLIC_FIELDS = [
   "kind", "name", "shortDescription", "longDescription", "type", "areas", "lat", "lng",
-  "address", "city", "place", "startsAt", "endsAt", "site", "contact",
+  "address", "city", "place", "startsAt", "endsAt", "site", "contact", "photos", "videos",
 ] as const;
 
 export function publicData(s: EntryData & Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const k of PUBLIC_FIELDS) out[k] = s[k] ?? (k === "areas" ? [] : null);
+  for (const k of PUBLIC_FIELDS) out[k] = s[k] ?? (k === "areas" || k === "photos" || k === "videos" ? [] : null);
   return out;
 }
 

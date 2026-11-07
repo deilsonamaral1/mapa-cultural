@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState } from "react";
+import { MAX_PHOTOS, MAX_VIDEOS, photoUrls, uploadPhoto, youtubeId } from "@/lib/media";
 import { T, errMsg, supabase, type EntryData, type Submission } from "@/lib/supabase";
 import { KINDS, SUBMIT_KINDS, type SubmitKind } from "@/lib/mapas";
 
@@ -52,8 +53,28 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
   const [endsAt, setEndsAt] = useState(toInput(initial?.endsAt));
   const [site, setSite] = useState(initial?.site ?? "");
   const [contact, setContact] = useState(initial?.contact ?? "");
+  const [photos, setPhotos] = useState<string[]>(photoUrls(initial?.photos));
+  const [videos, setVideos] = useState<string[]>(initial?.videos?.length ? initial.videos.map((v) => `https://youtu.be/${v}`) : [""]);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  async function addPhotos(files: FileList | null) {
+    if (!files?.length) return;
+    setError("");
+    setUploading(true);
+    try {
+      const room = MAX_PHOTOS - photos.length;
+      const added: string[] = [];
+      for (const f of Array.from(files).slice(0, room)) added.push(await uploadPhoto(ownerId, f));
+      setPhotos((cur) => [...cur, ...added]);
+      if (files.length > room) setError(`Máximo de ${MAX_PHOTOS} fotos.`);
+    } catch (err) {
+      setError(errMsg(err));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   const toggleArea = (a: string) => setAreas((cur) => (cur.includes(a) ? cur.filter((x) => x !== a) : [...cur, a]));
 
@@ -75,6 +96,11 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
     if (kind === "event" && !startsAt) return setError("Informe a data e a hora de início do evento.");
     if (kind === "event" && endsAt && new Date(endsAt) < new Date(startsAt)) return setError("O fim do evento não pode ser antes do início.");
 
+    const filled = videos.map((v) => v.trim()).filter(Boolean);
+    const ids = filled.map((v) => youtubeId(v));
+    if (ids.some((i) => !i)) return setError("Um dos links de vídeo não parece ser do YouTube. Cole o endereço do vídeo (youtube.com ou youtu.be).");
+    if (uploading) return setError("Aguarde o envio das fotos terminar.");
+
     const data: EntryData = {
       kind,
       name: name.trim(),
@@ -91,6 +117,8 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
       endsAt: kind === "event" ? toIso(endsAt) : null,
       site: orNull(site),
       contact: orNull(contact),
+      photos,
+      videos: Array.from(new Set(ids as string[])),
     };
 
     setBusy(true);
@@ -172,6 +200,48 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
         </div>
         <LocationPicker lat={lat} lng={lng} onChange={(a, b) => { setLat(a); setLng(b); }} />
         <p className="mt-1 text-xs text-gray-500">{lat != null && lng != null ? `Marcado: ${lat.toFixed(5)}, ${lng.toFixed(5)}` : "Nenhum ponto marcado ainda."}</p>
+      </div>
+
+      <div>
+        <span className="text-sm font-medium text-gray-700">Fotos (opcional, até {MAX_PHOTOS})</span>
+        {photos.length > 0 && (
+          <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {photos.map((src) => (
+              <li key={src} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" className="aspect-square w-full rounded-lg object-cover" />
+                <button type="button" aria-label="Remover foto" onClick={() => setPhotos((c) => c.filter((x) => x !== src))}
+                  className="absolute right-1 top-1 grid h-7 w-7 place-items-center rounded-full bg-black/65 text-white">×</button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {photos.length < MAX_PHOTOS && (
+          <label className="mt-2 inline-flex cursor-pointer items-center rounded-xl border border-dashed border-slate-400 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+            {uploading ? "Enviando foto…" : "+ Escolher fotos"}
+            <input type="file" accept="image/jpeg,image/png,image/webp" multiple disabled={uploading} className="sr-only"
+              onChange={(e) => { addPhotos(e.target.files); e.target.value = ""; }} />
+          </label>
+        )}
+        <p className="mt-1 text-xs text-gray-500">As fotos ficam públicas depois da aprovação. Use fotos suas ou com autorização.</p>
+      </div>
+
+      <div>
+        <span className="text-sm font-medium text-gray-700">Vídeos do YouTube (opcional, até {MAX_VIDEOS})</span>
+        <div className="mt-2 space-y-2">
+          {videos.map((v, i) => (
+            <div key={i} className="flex gap-2">
+              <input value={v} onChange={(e) => setVideos((c) => c.map((x, j) => (j === i ? e.target.value : x)))} placeholder="https://www.youtube.com/watch?v=…" aria-label={`Link do vídeo ${i + 1}`} />
+              {videos.length > 1 && (
+                <button type="button" aria-label="Remover vídeo" onClick={() => setVideos((c) => c.filter((_, j) => j !== i))} className="shrink-0 rounded-xl border px-3 text-slate-600">×</button>
+              )}
+            </div>
+          ))}
+        </div>
+        {videos.length < MAX_VIDEOS && (
+          <button type="button" onClick={() => setVideos((c) => [...c, ""])} className="mt-2 text-sm font-medium text-brand underline">+ Adicionar outro vídeo</button>
+        )}
+        <p className="mt-1 text-xs text-gray-500">O vídeo continua no YouTube; o site só mostra o player. Dica: no YouTube, deixe o vídeo como "Público" ou "Não listado".</p>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">

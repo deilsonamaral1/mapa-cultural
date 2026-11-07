@@ -60,6 +60,9 @@ export type Item = {
   site: string | null; // só cadastros deste site
   contact: string | null; // só cadastros deste site
   url: string; // página oficial da entidade ("" nos cadastros deste site)
+  photos?: string[]; // só cadastros deste site
+  videos?: string[]; // só cadastros deste site (links do YouTube)
+  entryId?: string; // só cadastros deste site: id para a página /ver
 };
 
 export type FetchResult = { items: Item[]; truncated: boolean };

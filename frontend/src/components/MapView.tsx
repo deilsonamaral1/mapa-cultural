@@ -50,12 +50,14 @@ function popupHtml(it: Item) {
   const desc = it.description && it.description.length > 180 ? it.description.slice(0, 177) + "…" : it.description;
   return `<div class="mc-pop">
     <span class="mc-tag" style="background:${k.color}">${esc(k.label)}</span>
+    ${it.photos?.[0] ? `<img src="${esc(it.photos[0])}" alt="" style="width:100%;height:110px;object-fit:cover;border-radius:10px;margin-top:6px"/>` : ""}
     <strong>${esc(it.name)}</strong>
     ${it.place ? `<div>${esc(it.place)}</div>` : ""}
     ${it.startsAt ? `<div>${esc(fmtDate(it.startsAt))}</div>` : ""}
     ${desc ? `<p>${esc(desc)}</p>` : ""}
     ${it.contact ? `<div>${esc(it.contact)}</div>` : ""}
     ${safeUrl(it.site) ? `<a href="${esc(safeUrl(it.site)!)}" target="_blank" rel="noopener noreferrer">Site ou rede social ↗</a><br/>` : ""}
+    ${it.entryId ? `<a href="/ver?id=${esc(it.entryId)}">Ver fotos e detalhes</a><br/>` : ""}
     ${it.url ? `<a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">Abrir em ${esc(SOURCES[it.source].short)} ↗</a>` : ""}
   </div>`;
 }

@@ -1,3 +1,4 @@
+import { photoUrls, youtubeIds } from "@/lib/media";
 import { T, rowToEntry, supabase } from "@/lib/supabase";
 import type { FetchResult, Item, SubmitKind } from "@/lib/mapas";
 
@@ -48,6 +49,9 @@ export async function fetchLocal(kind: SubmitKind, opts: { q?: string }): Promis
       site: txt(d.site),
       contact: txt(d.contact),
       url: "",
+      photos: photoUrls(d.photos),
+      videos: youtubeIds(d.videos),
+      entryId: String(d.id),
     });
   }
   return { items, truncated: (r.count ?? 0) > 500 };

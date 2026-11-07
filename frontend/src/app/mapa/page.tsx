@@ -314,6 +314,10 @@ export default function MapaPage() {
                       </p>
                     )}
                     {it.description && <p className="mt-1.5 line-clamp-2 text-sm text-slate-600">{it.description}</p>}
+                    {it.photos?.[0] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={it.photos[0]} alt="" loading="lazy" className="mt-2 h-28 w-full rounded-xl object-cover" />
+                    )}
 
                     <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
                       <span className="rounded-full bg-slate-100 px-2 py-0.5 font-medium text-slate-700">{SOURCES[it.source].short}</span>
@@ -322,6 +326,11 @@ export default function MapaPage() {
                       ))}
                       {km != null && <span>{km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`}</span>}
                       {!listOnly && it.lat == null && <span>sem localização</span>}
+                      {it.entryId && (
+                        <a href={`/ver?id=${it.entryId}`} onClick={(e) => e.stopPropagation()} className="ml-auto font-semibold text-brand hover:underline">
+                          {it.photos?.length || it.videos?.length ? "Ver fotos e vídeos" : "Ver detalhes"}
+                        </a>
+                      )}
                       {it.url && (
                         <a
                           href={it.url}

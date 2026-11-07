@@ -8,6 +8,8 @@ import { T, errMsg, publicData, rowToSubmission, supabase, type EntryStatus, typ
 import { KINDS, fmtDate } from "@/lib/mapas";
 import { useUser } from "@/lib/useUser";
 import Equipe from "@/components/Equipe";
+import Media from "@/components/Media";
+import { photoUrls } from "@/lib/media";
 
 const TABS: { key: EntryStatus; label: string }[] = [
   { key: "pending", label: "Pendentes" },
@@ -152,6 +154,7 @@ export default function AdminPage() {
                   <h2 className="text-lg font-semibold leading-snug">{s.name}</h2>
                   <p className="text-xs text-gray-500">Enviado por {s.ownerName || "—"} em {new Date(s.createdAt).toLocaleDateString("pt-BR")}</p>
                   <p className="mt-2 text-sm text-gray-700">{s.shortDescription}</p>
+                  <div className="mt-3 max-w-md"><Media photos={photoUrls(s.photos)} videos={s.videos} /></div>
                   <dl className="mt-2 grid gap-x-4 gap-y-0.5 text-sm text-gray-600 sm:grid-cols-2">
                     {s.type && <div><dt className="inline font-medium">Tipo: </dt><dd className="inline">{s.type}</dd></div>}
                     {s.areas?.length > 0 && <div><dt className="inline font-medium">Áreas: </dt><dd className="inline">{s.areas.join(", ")}</dd></div>}
