@@ -110,7 +110,7 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
       }
       onSaved();
     } catch (err) {
-      setError(errMsg(err));
+      setError(`Ao enviar o cadastro: ${errMsg(err)}`);
     } finally {
       setBusy(false);
     }

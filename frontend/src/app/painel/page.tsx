@@ -34,7 +34,7 @@ export default function PainelPage() {
       setList(r.documents.map(rowToSubmission));
       setError("");
     } catch (e) {
-      setError(errMsg(e));
+      setError(`Ao carregar seus cadastros: ${errMsg(e)}`);
     } finally {
       setBusy(false);
     }
