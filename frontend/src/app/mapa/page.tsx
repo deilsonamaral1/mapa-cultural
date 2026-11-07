@@ -94,6 +94,7 @@ export default function MapaPage() {
           st[k] = { state: "ok", count: r.value.items.length, truncated: r.value.truncated || (k === "estado" && r.value.items.length >= 400) };
         } else {
           st[k] = { state: "error", error: r.reason instanceof Error ? r.reason.message : "erro desconhecido" };
+          if (k === "local") console.warn("Cadastros do site indisponíveis:", r.reason);
         }
       });
       setItems(all);
@@ -136,7 +137,7 @@ export default function MapaPage() {
   }, [items, tab, period, onlyOpen, me, listOnly]);
 
   const loading = active.some((k) => status[k]?.state === "loading");
-  const failed = active.filter((k) => status[k]?.state === "error");
+  const failed = active.filter((k) => k !== "local" && status[k]?.state === "error"); // a fonte "Site" é opcional: falha dela não assusta o visitante
   const truncated = active.some((k) => status[k]?.truncated);
   const pins = visible.filter((it) => it.lat != null).length;
   const withoutPin = visible.length - pins;
@@ -184,14 +185,14 @@ export default function MapaPage() {
   const panel = (
     <>
       <div className="space-y-3 p-4">
-        <div role="tablist" aria-label="Categoria" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-0.5">
+        <div role="tablist" aria-label="Categoria" className="flex flex-wrap gap-1.5">
           {KIND_ORDER.map((k) => (
             <button
               key={k}
               role="tab"
               aria-selected={tab === k}
               onClick={() => { setTab(k); setSelected(null); }}
-              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition ${
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 tab === k ? "text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
               style={tab === k ? { background: KINDS[k].color } : undefined}

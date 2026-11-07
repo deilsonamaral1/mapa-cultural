@@ -169,7 +169,7 @@ export default function Home() {
         <div className="border-t border-slate-200 px-4 py-5 text-center text-xs text-slate-500">
           Fontes: <a className="underline" href={SOURCES.aquiraz.site} target="_blank" rel="noopener noreferrer">Mapa Cultural de Aquiraz</a> e{" "}
           <a className="underline" href={SOURCES.estado.site} target="_blank" rel="noopener noreferrer">Mapa Cultural do Ceará</a>.
-          Mapa base: colaboradores do OpenStreetMap e CARTO.
+          Mapa base: colaboradores do OpenStreetMap.
         </div>
       </footer>
     </div>

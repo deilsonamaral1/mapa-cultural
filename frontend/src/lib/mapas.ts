@@ -279,7 +279,10 @@ async function fetchRows(
 
 /** Busca um tipo de entidade em uma instância. Aquiraz é lida inteira (até 5 páginas); o estado, só a 1ª página. */
 export async function fetchKind(source: OfficialKey, kind: Kind, opts: FetchOpts): Promise<FetchResult> {
-  const maxPages = source === "aquiraz" ? 5 : 1;
+  // Aquiraz é lido inteiro. No estado há dezenas de milhares de agentes, e muitos têm o nome em branco
+  // (a lista por nome começa por eles), então buscamos até 3 páginas de agentes e espaços.
+  const maxPages = source === "aquiraz" ? 5 : kind === "agent" || kind === "space" ? 3 : 1;
+  const hasName = (e: any) => typeof e?.name === "string" && e.name.trim() !== "";
   const rows: any[] = [];
   const chain = SELECT[kind];
   let level = 0;
@@ -298,11 +301,16 @@ export async function fetchKind(source: OfficialKey, kind: Kind, opts: FetchOpts
     }
     rows.push(...chunk);
     if (chunk.length < PAGE) break;
+    if (source === "estado" && rows.filter(hasName).length >= PAGE) {
+      truncated = true; // já temos uma página cheia de cadastros com nome
+      break;
+    }
     if (page === maxPages) truncated = true;
   }
 
   const items = rows
-    .filter((e) => e && e.id != null)
+    .filter((e) => e && e.id != null && hasName(e)) // cadastros sem nome não ajudam ninguém
+    .slice(0, source === "estado" ? PAGE : undefined)
     .map((e) => (kind === "event" ? normEvent(source, e) : base(source, kind, e)));
   return { items, truncated };
 }
