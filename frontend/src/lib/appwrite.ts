@@ -9,8 +9,8 @@ export const APPWRITE = {
   database: process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ?? "6aed2d2f003472943abd",
   // IDs das tabelas. Se no Appwrite elas tiverem outro ID (veja em Settings da tabela), troque aqui
   // ou use as variáveis NEXT_PUBLIC_APPWRITE_SUBMISSIONS_ID e NEXT_PUBLIC_APPWRITE_PUBLISHED_ID.
-  submissions: process.env.NEXT_PUBLIC_APPWRITE_SUBMISSIONS_ID ?? "submissions", // o que os agentes enviam
-  published: process.env.NEXT_PUBLIC_APPWRITE_PUBLISHED_ID ?? "published", // o que o público vê (só o admin grava)
+  submissions: process.env.NEXT_PUBLIC_APPWRITE_SUBMISSIONS_ID ?? "6aee7a4c003711ecb624", // o que os agentes enviam
+  published: process.env.NEXT_PUBLIC_APPWRITE_PUBLISHED_ID ?? "6aee7a5b0029675dc1e6", // o que o público vê (só o admin grava)
 };
 
 const client = new Client().setEndpoint(APPWRITE.endpoint).setProject(APPWRITE.project);
