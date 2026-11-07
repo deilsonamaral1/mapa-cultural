@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HeroArt from "@/components/HeroArt";
+import PostList from "@/components/PostList";
 import Icon from "@/components/Icon";
 import SiteHeader, { Logo } from "@/components/SiteHeader";
 import UpcomingEvents from "@/components/UpcomingEvents";
@@ -92,6 +93,9 @@ export default function Home() {
         </div>
         <UpcomingEvents />
       </section>
+
+      {/* ---------- blog e podcast (só aparece quando há publicações) ---------- */}
+      <PostList limit={3} compact home />
 
       {/* ---------- categorias ---------- */}
       <section className="mx-auto max-w-7xl px-4 pb-16">

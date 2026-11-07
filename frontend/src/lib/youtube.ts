@@ -21,3 +21,24 @@ export function youtubeId(url: string): string | null {
     return null;
   }
 }
+
+/** Player embutido para links de Spotify, YouTube e SoundCloud (qualquer outro endereço é ignorado). */
+export function embedFor(url: string | null | undefined): { src: string; height: number } | null {
+  if (!url) return null;
+  const yt = youtubeId(url);
+  if (yt) return { src: `https://www.youtube-nocookie.com/embed/${yt}`, height: 0 }; // height 0 = proporção 16:9
+  try {
+    const u = new URL(/^https?:\/\//i.test(url.trim()) ? url.trim() : `https://${url.trim()}`);
+    const host = u.hostname.replace(/^www\./, "");
+    if (host === "open.spotify.com") {
+      const m = u.pathname.match(/^\/(?:intl-[\w-]+\/)?(episode|show|track|playlist|album)\/([A-Za-z0-9]+)/);
+      if (m) return { src: `https://open.spotify.com/embed/${m[1]}/${m[2]}`, height: m[1] === "episode" || m[1] === "track" ? 152 : 352 };
+    }
+    if (host === "soundcloud.com" && u.pathname.length > 1) {
+      return { src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(`https://soundcloud.com${u.pathname}`)}`, height: 166 };
+    }
+  } catch {
+    /* link inválido */
+  }
+  return null;
+}

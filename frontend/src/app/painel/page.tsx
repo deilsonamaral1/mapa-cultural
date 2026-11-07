@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import EntryForm from "@/components/EntryForm";
+import MeusPosts from "@/components/MeusPosts";
 import RoleBadge from "@/components/RoleBadge";
 import SiteHeader from "@/components/SiteHeader";
 import { T, errMsg, rowToSubmission, supabase, type EntryStatus, type Submission } from "@/lib/supabase";
@@ -125,6 +126,8 @@ export default function PainelPage() {
                 </li>
               ))}
             </ul>
+
+            <MeusPosts userId={user.id} userName={user.name || user.email.split("@")[0]} isAdmin={isAdmin} />
           </>
         )}
       </main>

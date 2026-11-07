@@ -53,6 +53,14 @@ export default function SiteHeader() {
           {KINDS[k].plural}
         </a>
       ))}
+      <a href="/blog" className="flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
+        <Icon name="blog" className="h-[18px] w-[18px]" />
+        Blog
+      </a>
+      <a href="/podcast" className="flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
+        <Icon name="mic" className="h-[18px] w-[18px]" />
+        Podcast
+      </a>
     </>
   );
 

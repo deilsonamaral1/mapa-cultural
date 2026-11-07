@@ -7,6 +7,7 @@ import SiteHeader from "@/components/SiteHeader";
 import { T, errMsg, publicData, rowToSubmission, supabase, type EntryStatus, type Submission } from "@/lib/supabase";
 import { KINDS, fmtDate } from "@/lib/mapas";
 import { useUser } from "@/lib/useUser";
+import AdminPosts from "@/components/AdminPosts";
 import Equipe from "@/components/Equipe";
 import Media from "@/components/Media";
 import { photoUrls } from "@/lib/media";
@@ -25,7 +26,7 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"aprovacoes" | "equipe">("aprovacoes");
+  const [view, setView] = useState<"aprovacoes" | "textos" | "equipe">("aprovacoes");
 
   const load = useCallback(async () => {
     if (!isAdmin) return;
@@ -123,7 +124,7 @@ export default function AdminPage() {
           <>
             <h1 className="text-2xl font-bold">Administração</h1>
             <div className="flex gap-2 border-b border-slate-200" role="tablist" aria-label="Seções">
-              {([["aprovacoes", "Aprovações"], ["equipe", "Equipe"]] as const).map(([k, l]) => (
+              {([["aprovacoes", "Cadastros"], ["textos", "Blog e podcast"], ["equipe", "Equipe"]] as const).map(([k, l]) => (
                 <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
                   className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold ${view === k ? "border-sea text-sea" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
                   {l}
@@ -132,6 +133,7 @@ export default function AdminPage() {
             </div>
 
             {view === "equipe" && <Equipe meId={user!.id} />}
+            {view === "textos" && <AdminPosts />}
 
             {view === "aprovacoes" && (<>
             <div className="flex gap-1 rounded-lg bg-brand-soft p-1" role="tablist">
