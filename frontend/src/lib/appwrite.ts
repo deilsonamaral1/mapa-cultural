@@ -1,5 +1,5 @@
 import { Account, Client, Databases, ID, Query } from "appwrite";
-import type { Kind } from "@/lib/mapas";
+import type { SubmitKind } from "@/lib/mapas";
 
 // Endereço e IDs do projeto NÃO são segredo (o navegador precisa deles). A chave de API, sim:
 // ela nunca entra neste site (só no script appwrite/setup.mjs, rodado no seu computador).
@@ -20,7 +20,7 @@ export type EntryStatus = "pending" | "approved" | "rejected";
 
 /** Campos de um cadastro (iguais em `submissions` e `published`). */
 export type EntryData = {
-  kind: Kind;
+  kind: SubmitKind;
   name: string;
   shortDescription: string;
   longDescription?: string | null;

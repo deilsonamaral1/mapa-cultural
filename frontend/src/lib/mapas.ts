@@ -7,7 +7,12 @@
  * da resposta e, se um campo extra for recusado, repete a consulta só com os campos básicos.
  */
 
-export type Kind = "agent" | "space" | "event";
+export type Kind = "event" | "space" | "agent" | "project" | "opportunity";
+/** Tipos que os agentes podem cadastrar neste site (Projetos e Oportunidades vêm só dos mapas oficiais). */
+export type SubmitKind = "event" | "space" | "agent";
+export const SUBMIT_KINDS: SubmitKind[] = ["event", "space", "agent"];
+/** Ordem das abas, a mesma do Mapa Cultural oficial. */
+export const KIND_ORDER: Kind[] = ["event", "space", "agent", "project", "opportunity"];
 export type SourceKey = "aquiraz" | "estado" | "local";
 /** Fontes lidas das APIs oficiais (a fonte "local" são os cadastros aprovados neste site, no Appwrite). */
 export type OfficialKey = Exclude<SourceKey, "local">;
@@ -29,9 +34,11 @@ export const SOURCES: Record<SourceKey, { label: string; short: string; proxy: s
 };
 
 export const KINDS: Record<Kind, { label: string; plural: string; path: string; color: string }> = {
-  agent: { label: "Agente", plural: "Agentes", path: "agente", color: "#0e7c86" },
-  space: { label: "Espaço", plural: "Espaços", path: "espaco", color: "#b7791f" },
-  event: { label: "Evento", plural: "Eventos", path: "evento", color: "#b4451f" },
+  event: { label: "Evento", plural: "Eventos", path: "evento", color: "#e4572e" },
+  space: { label: "Espaço", plural: "Espaços", path: "espaco", color: "#d98e04" },
+  agent: { label: "Agente", plural: "Agentes", path: "agente", color: "#0f8b8d" },
+  project: { label: "Projeto", plural: "Projetos", path: "projeto", color: "#6a4fc9" },
+  opportunity: { label: "Oportunidade", plural: "Oportunidades", path: "oportunidade", color: "#2f9e44" },
 };
 
 export type Item = {
@@ -130,6 +137,8 @@ const qs = (params: Record<string, string | number | undefined>) =>
 
 function base(source: SourceKey, kind: Kind, e: Record<string, any>): Item {
   const loc = parseLocation(e.location);
+  // Projetos e oportunidades não têm ponto no mapa; o que importa é o período de inscrições
+  const registration = kind === "project" || kind === "opportunity";
   return {
     key: `${source}:${kind}:${e.id}`,
     source,
@@ -143,8 +152,8 @@ function base(source: SourceKey, kind: Kind, e: Record<string, any>): Item {
     lng: loc.lng,
     place: null,
     city: txt(e.En_Municipio),
-    startsAt: null,
-    endsAt: null,
+    startsAt: registration ? toDate(e.registrationFrom) : null,
+    endsAt: registration ? toDate(e.registrationTo) : null,
     when: null,
     site: null,
     contact: null,
@@ -215,6 +224,8 @@ function normEvent(source: SourceKey, e: Record<string, any>): Item {
 const SELECT: Record<Kind, string[]> = {
   agent: ["id,name,shortDescription,location,type,terms,En_Municipio", "id,name,shortDescription,location", "id,name"],
   space: ["id,name,shortDescription,location,type,terms,En_Municipio", "id,name,shortDescription,location", "id,name"],
+  project: ["id,name,shortDescription,type,terms,registrationFrom,registrationTo", "id,name,shortDescription,type", "id,name"],
+  opportunity: ["id,name,shortDescription,type,terms,registrationFrom,registrationTo", "id,name,shortDescription,type", "id,name"],
   event: [
     "id,name,shortDescription,terms,occurrences.{id,space.{id,name,location,En_Municipio},rule}",
     "id,name,shortDescription,occurrences.{id,space.{name,location},rule}",
@@ -309,4 +320,9 @@ export function distanceKm(aLat: number, aLng: number, bLat: number, bLng: numbe
 export function fmtDate(d: Date | null) {
   if (!d) return "";
   return d.toLocaleString("pt-BR", { weekday: "short", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+}
+
+export function fmtDay(d: Date | null) {
+  if (!d) return "";
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
 }

@@ -1,139 +1,176 @@
 import Link from "next/link";
-import SiteHeader from "@/components/SiteHeader";
-import { KINDS, SOURCES } from "@/lib/mapas";
+import HeroArt from "@/components/HeroArt";
+import Icon from "@/components/Icon";
+import SiteHeader, { Logo } from "@/components/SiteHeader";
+import UpcomingEvents from "@/components/UpcomingEvents";
+import { KINDS, KIND_ORDER, SOURCES, type Kind } from "@/lib/mapas";
 
-// Fotos opcionais em frontend/public/hero/1.jpg, 2.jpg e 3.jpg (veja LEIAME.txt na pasta).
-// Sem as fotos, cada painel mostra só o degradê.
-const PANELS = [
-  { img: "/hero/1.jpg", bg: "linear-gradient(180deg,#6fb9e6 0%,#cfe9f7 55%,#e6cf9b 100%)", mark: "⛵" },
-  { img: "/hero/2.jpg", bg: "linear-gradient(180deg,#9fd0ee 0%,#f4f1e8 60%,#e8c34a 100%)", mark: "⛪" },
-  { img: "/hero/3.jpg", bg: "linear-gradient(160deg,#ebbd4f 0%,#d98a2b 60%,#a9591f 100%)", mark: "🏛️" },
-];
+const city = process.env.NEXT_PUBLIC_CITY_NAME ?? "Aquiraz";
 
-const CARDS = [
-  { tab: "event", icon: "📅", text: "Shows, oficinas, festas populares e programação cultural dos próximos dias." },
-  { tab: "space", icon: "🏛️", text: "Teatros, museus, casas de cultura, pontos de cultura e outros lugares da cidade." },
-  { tab: "agent", icon: "👤", text: "Artistas, mestres da cultura popular, coletivos e grupos culturais." },
-] as const;
+const CATEGORY_TEXT: Record<Kind, string> = {
+  event: "Shows, oficinas, festas populares e a programação cultural dos próximos dias.",
+  space: "Teatros, museus, casas de cultura, pontos de cultura e outros lugares onde a cultura acontece.",
+  agent: "Artistas, mestres da cultura popular, coletivos e grupos culturais.",
+  project: "Iniciativas e programas culturais em andamento.",
+  opportunity: "Editais, chamadas e prêmios com inscrições abertas.",
+};
+
+// Eventos e espaços ganham mais destaque: são o que mais se procura.
+const SPAN: Record<Kind, string> = {
+  event: "md:col-span-3",
+  space: "md:col-span-3",
+  agent: "md:col-span-2",
+  project: "md:col-span-2",
+  opportunity: "md:col-span-2",
+};
 
 const STEPS = [
-  { n: 1, title: "Crie sua conta", text: "O cadastro é feito no Mapa Cultural oficial, uma única vez." },
-  { n: 2, title: "Preencha seu perfil", text: "Cadastre o agente, o espaço ou o evento, com fotos, descrição e localização." },
-  { n: 3, title: "Apareça no mapa", text: "Depois de publicado, o seu cadastro passa a aparecer aqui e no mapa oficial." },
+  { title: "Crie sua conta", text: "Leva um minuto: nome, e-mail e senha." },
+  { title: "Cadastre seu trabalho", text: "Descreva seu agente, espaço ou evento e marque o local no mapa." },
+  { title: "A equipe revisa e publica", text: "Depois da aprovação, você aparece no mapa para todo mundo." },
 ];
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen">
       <SiteHeader />
 
-      {/* atalhos coloridos na lateral (computador) */}
-      <nav aria-label="Atalhos" className="fixed left-0 top-1/2 z-30 hidden -translate-y-1/2 flex-col md:flex">
-        {[
-          { t: "Início", i: "🏠", c: "#1b4f8a", h: "/" },
-          { t: "Eventos", i: "📅", c: "#b9c60f", h: "/mapa?tab=event" },
-          { t: "Agentes", i: "👤", c: "#1fb5b0", h: "/mapa?tab=agent" },
-          { t: "Espaços", i: "🏛️", c: "#e0307a", h: "/mapa?tab=space" },
-        ].map((x) => (
-          <a key={x.t} href={x.h} title={x.t} aria-label={x.t} className="grid h-11 w-11 place-items-center text-lg text-white transition hover:w-14" style={{ background: x.c }}>
-            {x.i}
-          </a>
-        ))}
-      </nav>
+      {/* ---------- abertura ---------- */}
+      <section className="relative isolate overflow-hidden bg-gradient-to-b from-sea-deep via-sea to-sea-mid text-white">
+        <HeroArt className="pointer-events-none absolute -right-10 bottom-0 -z-10 hidden h-[115%] w-auto max-w-none opacity-95 md:block lg:right-6" />
 
-      {/* ---------- boas-vindas ---------- */}
-      <section className="relative isolate overflow-hidden bg-[#1b4f8a]">
-        <div className="absolute inset-0 -z-10 grid grid-cols-1 gap-3 p-3 md:grid-cols-3" aria-hidden>
-          {PANELS.map((p, i) => (
-            <div
-              key={p.img}
-              className={`relative overflow-hidden rounded-sm ${i > 0 ? "hidden md:block" : ""}`}
-              style={{ backgroundImage: `url(${p.img}), ${p.bg}`, backgroundSize: "cover", backgroundPosition: "center" }}
-            >
-              <span className="absolute bottom-2 right-4 select-none text-[8rem] leading-none opacity-25">{p.mark}</span>
-            </div>
-          ))}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0e2f56]/80 via-[#0e2f56]/35 to-transparent" />
-        </div>
-
-        <div className="mx-auto max-w-5xl px-6 py-16 text-white md:py-28 md:pl-20">
-          <h1 className="font-serif text-4xl font-bold drop-shadow sm:text-6xl">Bem-vind@!</h1>
-          <p className="mt-4 max-w-xl text-lg drop-shadow">
-            Descubra os eventos, espaços e agentes culturais de {process.env.NEXT_PUBLIC_CITY_NAME ?? "Aquiraz"} e de todo o Ceará, em um só mapa.
+        <div className="mx-auto max-w-7xl px-4 pb-32 pt-14 md:pb-44 md:pt-24">
+          <h1 className="max-w-2xl text-5xl font-extrabold leading-[1.02] sm:text-6xl lg:text-7xl">Encontre a cultura de {city}</h1>
+          <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/85">
+            Eventos, espaços, agentes, projetos e oportunidades da cidade e do Ceará, reunidos em um só mapa.
           </p>
 
-          <form action="/mapa" method="get" className="mt-7 flex max-w-2xl flex-col overflow-hidden rounded shadow-lg sm:flex-row" role="search">
-            <input
-              name="q"
-              placeholder="Digite uma palavra-chave"
-              aria-label="Palavra-chave"
-              className="!rounded-none !border-0 !px-4 !py-3.5 !text-base text-ink"
-            />
-            <select name="tab" aria-label="Buscar em" defaultValue="event" className="!w-auto !rounded-none !border-0 !border-l !px-3 !py-3.5 text-ink">
-              <option value="event">Eventos</option>
-              <option value="space">Espaços</option>
-              <option value="agent">Agentes</option>
+          <form action="/mapa" method="get" role="search" className="mt-8 flex max-w-2xl flex-col gap-2 rounded-2xl bg-white p-2 shadow-lift sm:flex-row">
+            <div className="relative flex-1">
+              <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                name="q"
+                placeholder="Digite uma palavra-chave"
+                aria-label="Palavra-chave"
+                className="!border-0 !bg-transparent !py-3.5 !pl-11 !text-base text-ink !shadow-none !ring-0"
+              />
+            </div>
+            <select name="tab" aria-label="Buscar em" defaultValue="event" className="!w-auto !border-0 !bg-slate-100 !py-3.5 !pr-8 text-ink sm:!w-44">
+              {KIND_ORDER.map((k) => (
+                <option key={k} value={k}>{KINDS[k].plural}</option>
+              ))}
             </select>
-            <button className="bg-ink px-6 py-3.5 font-semibold text-white hover:bg-black">🔎 Buscar</button>
+            <button className="rounded-xl bg-sun px-7 py-3.5 font-semibold text-ink hover:bg-[#ffb62e]">Buscar</button>
           </form>
 
-          <div className="mt-5 flex flex-wrap gap-3">
-            <Link href="/cadastro" className="rounded bg-brand px-6 py-3 font-semibold text-white shadow hover:bg-brand-dark">
-              Colabore com o Mapas Culturais
-            </Link>
-            <Link href="/mapa" className="rounded border border-white/80 px-6 py-3 font-semibold text-white hover:bg-white/10">
-              Ver o mapa →
-            </Link>
+          <div className="mt-5 flex flex-wrap gap-2 text-sm">
+            {[
+              { href: "/mapa?tab=event&period=today", label: "Eventos de hoje" },
+              { href: "/mapa?tab=event&period=week", label: "Eventos da semana" },
+              { href: "/mapa?tab=opportunity", label: "Oportunidades abertas" },
+            ].map((c) => (
+              <a key={c.href} href={c.href} className="rounded-full border border-white/30 px-4 py-1.5 text-white/90 transition hover:bg-white/10">
+                {c.label}
+              </a>
+            ))}
           </div>
         </div>
+
+        {/* onda de transição para o fundo da página */}
+        <svg viewBox="0 0 1440 90" preserveAspectRatio="none" aria-hidden="true" className="absolute inset-x-0 bottom-[-1px] block h-12 w-full md:h-20">
+          <path d="M0 50c120 40 240 40 360 14s240-50 360-44 240 52 360 56 240-24 360-48v62H0z" fill="#f5f7f6" />
+        </svg>
       </section>
 
-      {/* ---------- o que você encontra ---------- */}
-      <section className="mx-auto max-w-5xl px-6 py-14">
-        <h2 className="text-2xl font-bold text-ink">Explore o mapa</h2>
-        <div className="mt-6 grid gap-4 md:grid-cols-3">
-          {CARDS.map((c) => (
+      {/* ---------- próximos eventos ---------- */}
+      <section className="mx-auto max-w-7xl px-4 py-14">
+        <div className="mb-6 flex items-end justify-between gap-4">
+          <h2 className="text-3xl font-bold">Próximos eventos em {city}</h2>
+          <a href="/mapa?tab=event" className="shrink-0 text-sm font-semibold text-brand underline-offset-4 hover:underline">
+            Ver todos os eventos
+          </a>
+        </div>
+        <UpcomingEvents />
+      </section>
+
+      {/* ---------- categorias ---------- */}
+      <section className="mx-auto max-w-7xl px-4 pb-16">
+        <h2 className="mb-6 text-3xl font-bold">Explore por categoria</h2>
+        <div className="grid gap-4 md:grid-cols-6">
+          {KIND_ORDER.map((k) => (
             <a
-              key={c.tab}
-              href={`/mapa?tab=${c.tab}`}
-              className="group rounded-lg border bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-              style={{ borderTop: `4px solid ${KINDS[c.tab].color}` }}
+              key={k}
+              href={`/mapa?tab=${k}`}
+              className={`group flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-lift ${SPAN[k]}`}
             >
-              <div className="text-3xl">{c.icon}</div>
-              <h3 className="mt-2 text-lg font-semibold">{KINDS[c.tab].plural}</h3>
-              <p className="mt-1 text-sm text-gray-600">{c.text}</p>
-              <span className="mt-3 inline-block text-sm font-semibold text-brand-dark group-hover:underline">Abrir no mapa →</span>
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl text-white" style={{ background: KINDS[k].color }}>
+                <Icon name={k} className="h-6 w-6" />
+              </span>
+              <span>
+                <span className="block font-display text-xl font-semibold group-hover:text-brand">{KINDS[k].plural}</span>
+                <span className="mt-1 block text-sm leading-relaxed text-slate-600">{CATEGORY_TEXT[k]}</span>
+              </span>
             </a>
           ))}
         </div>
       </section>
 
-      {/* ---------- como participar ---------- */}
-      <section className="bg-brand-soft">
-        <div className="mx-auto max-w-5xl px-6 py-14">
-          <h2 className="text-2xl font-bold text-ink">Faça parte</h2>
-          <p className="mt-1 text-gray-600">Quem faz cultura na cidade tem lugar no mapa. É gratuito.</p>
-          <ol className="mt-6 grid gap-4 md:grid-cols-3">
-            {STEPS.map((s) => (
-              <li key={s.n} className="rounded-lg bg-white p-5 shadow-sm">
-                <span className="grid h-8 w-8 place-items-center rounded-full bg-brand font-bold text-white">{s.n}</span>
-                <h3 className="mt-3 font-semibold">{s.title}</h3>
-                <p className="mt-1 text-sm text-gray-600">{s.text}</p>
+      {/* ---------- participar ---------- */}
+      <section className="bg-sea-deep text-white">
+        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-16 md:grid-cols-2 md:items-center">
+          <div>
+            <h2 className="text-3xl font-bold sm:text-4xl">Quem faz cultura em {city} tem lugar no mapa</h2>
+            <p className="mt-4 max-w-md text-white/80">É gratuito. Seu cadastro passa por uma revisão da equipe antes de aparecer para o público.</p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/cadastro" className="rounded-full bg-sun px-6 py-3 font-semibold text-ink hover:bg-[#ffb62e]">Criar minha conta</Link>
+              <Link href="/entrar" className="rounded-full border border-white/35 px-6 py-3 font-semibold hover:bg-white/10">Já tenho conta</Link>
+            </div>
+          </div>
+
+          <ol className="space-y-4">
+            {STEPS.map((s, i) => (
+              <li key={s.title} className="flex gap-4 rounded-2xl bg-white/[.06] p-5 ring-1 ring-white/10">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-sun font-display font-bold text-ink">{i + 1}</span>
+                <div>
+                  <h3 className="font-display text-lg font-semibold">{s.title}</h3>
+                  <p className="mt-0.5 text-sm text-white/75">{s.text}</p>
+                </div>
               </li>
             ))}
           </ol>
-          <Link href="/cadastro" className="mt-7 inline-block rounded bg-brand px-6 py-3 font-semibold text-white hover:bg-brand-dark">
-            Quero me cadastrar
-          </Link>
         </div>
       </section>
 
-      <footer className="border-t px-6 py-8 text-center text-sm text-gray-500">
-        Dados dos mapas oficiais:{" "}
-        <a className="underline" href={SOURCES.aquiraz.site} target="_blank" rel="noopener noreferrer">Mapa Cultural de Aquiraz</a>
-        {" · "}
-        <a className="underline" href={SOURCES.estado.site} target="_blank" rel="noopener noreferrer">Mapa Cultural do Ceará</a>
-        <div className="mt-1">Mapa: © colaboradores do OpenStreetMap</div>
+      {/* ---------- rodapé ---------- */}
+      <footer className="bg-white">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 text-sm md:grid-cols-[1.4fr_1fr_1fr]">
+          <div>
+            <Logo />
+            <p className="mt-3 max-w-xs text-slate-600">Os dados vêm dos Mapas Culturais oficiais e dos cadastros aprovados neste site.</p>
+          </div>
+          <div>
+            <h3 className="font-display text-base font-semibold">Mapa</h3>
+            <ul className="mt-3 space-y-2 text-slate-600">
+              {KIND_ORDER.map((k) => (
+                <li key={k}><a className="hover:text-brand hover:underline" href={`/mapa?tab=${k}`}>{KINDS[k].plural}</a></li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h3 className="font-display text-base font-semibold">Participe</h3>
+            <ul className="mt-3 space-y-2 text-slate-600">
+              <li><Link className="hover:text-brand hover:underline" href="/cadastro">Cadastre-se</Link></li>
+              <li><Link className="hover:text-brand hover:underline" href="/entrar">Entrar</Link></li>
+              <li><Link className="hover:text-brand hover:underline" href="/painel">Meu painel</Link></li>
+              <li><Link className="hover:text-brand hover:underline" href="/admin">Administração da equipe</Link></li>
+            </ul>
+          </div>
+        </div>
+        <div className="border-t border-slate-200 px-4 py-5 text-center text-xs text-slate-500">
+          Fontes: <a className="underline" href={SOURCES.aquiraz.site} target="_blank" rel="noopener noreferrer">Mapa Cultural de Aquiraz</a> e{" "}
+          <a className="underline" href={SOURCES.estado.site} target="_blank" rel="noopener noreferrer">Mapa Cultural do Ceará</a>.
+          Mapa base: colaboradores do OpenStreetMap e CARTO.
+        </div>
       </footer>
     </div>
   );

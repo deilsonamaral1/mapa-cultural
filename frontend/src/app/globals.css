@@ -2,17 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-body { @apply bg-white text-ink antialiased; }
-input, textarea, select { @apply w-full rounded border border-gray-300 px-3 py-2 text-sm; }
-input[type="checkbox"] { @apply w-auto; }
-label { @apply block text-sm font-medium text-gray-700; }
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply bg-cal font-sans text-ink antialiased; }
+  h1, h2, h3, h4 { @apply font-display tracking-tight; }
 
-/* ---- mapa: pinos, popups e clusters ---- */
-.mc-pin span { display: block; width: 24px; height: 24px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.45); }
-.mc-pop { font-size: 13px; line-height: 1.35; }
-.mc-pop strong { display: block; font-size: 14px; margin: 4px 0 2px; }
-.mc-pop p { margin: 4px 0; color: #4b5563; }
-.mc-pop a { color: #8a3216; font-weight: 600; }
-.mc-tag { display: inline-block; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; }
-.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(180, 69, 31, .28); }
-.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background-color: rgba(180, 69, 31, .9); color: #fff; font-weight: 700; }
+  input, textarea, select {
+    @apply w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm transition;
+  }
+  input:focus, textarea:focus, select:focus {
+    @apply border-brand outline-none ring-4 ring-brand/15;
+  }
+  input[type="checkbox"] { @apply w-auto; }
+  label { @apply block text-sm font-medium text-slate-700; }
+
+  /* foco visível em tudo que se clica com o teclado */
+  a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 3px solid #f2a516; outline-offset: 2px; border-radius: 8px; }
+}
+
+/* ---- movimento: só a jangada da tela inicial, e respeita quem desliga animações ---- */
+@keyframes bob { 0%, 100% { transform: translateY(0) rotate(-.6deg); } 50% { transform: translateY(-7px) rotate(.6deg); } }
+.bob { animation: bob 7s ease-in-out infinite; transform-origin: 50% 90%; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .bob { animation: none; }
+  * { transition-duration: .01ms !important; }
+}
+
+/* ---- mapa: pinos, popups, clusters e controles ---- */
+.mc-pin span { display: block; width: 26px; height: 26px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(7,42,68,.45); }
+.mc-pop { font-size: 13px; line-height: 1.4; min-width: 200px; }
+.mc-pop strong { display: block; font-family: var(--font-display), system-ui, sans-serif; font-size: 15px; margin: 6px 0 2px; color: #0e1b26; }
+.mc-pop p { margin: 6px 0; color: #475569; }
+.mc-pop a { color: #0f4c75; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.mc-tag { display: inline-block; color: #fff; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 0 10px 30px -8px rgba(7,42,68,.35); }
+.leaflet-container { font-family: var(--font-body), system-ui, sans-serif; background: #dfe9ee; }
+.leaflet-bar { border: none !important; box-shadow: 0 4px 14px rgba(7,42,68,.2) !important; border-radius: 12px !important; overflow: hidden; }
+.leaflet-bar a { color: #0b3a5c; }
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background-color: rgba(15, 76, 117, .22); }
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div { background-color: #0f4c75; color: #fff; font-weight: 700; box-shadow: 0 2px 8px rgba(7,42,68,.35); }

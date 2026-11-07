@@ -4,7 +4,7 @@ import { Permission, Role } from "appwrite";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { APPWRITE, ID, databases, errMsg, type EntryData, type Submission } from "@/lib/appwrite";
-import { KINDS, type Kind } from "@/lib/mapas";
+import { KINDS, SUBMIT_KINDS, type SubmitKind } from "@/lib/mapas";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
   ssr: false,
@@ -12,7 +12,7 @@ const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
 });
 
 const AREAS = ["Artes visuais", "Artesanato", "Audiovisual", "Circo", "Cultura popular", "Dança", "Literatura", "Música", "Patrimônio cultural", "Teatro"];
-const TYPES: Record<Kind, string[]> = {
+const TYPES: Record<SubmitKind, string[]> = {
   agent: ["Individual", "Coletivo"],
   space: ["Teatro", "Museu", "Biblioteca", "Casa de cultura", "Ponto de cultura", "Centro cultural", "Praça"],
   event: ["Show", "Oficina", "Exposição", "Espetáculo", "Festa popular", "Feira", "Palestra"],
@@ -38,7 +38,7 @@ type Props = {
 };
 
 export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCancel }: Props) {
-  const [kind, setKind] = useState<Kind>(initial?.kind ?? "agent");
+  const [kind, setKind] = useState<SubmitKind>(initial?.kind ?? "agent");
   const [name, setName] = useState(initial?.name ?? "");
   const [shortDescription, setShort] = useState(initial?.shortDescription ?? "");
   const [longDescription, setLong] = useState(initial?.longDescription ?? "");
@@ -122,8 +122,8 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
 
       <div>
         <label>O que você quer cadastrar?
-          <select value={kind} onChange={(e) => { setKind(e.target.value as Kind); setType(""); }} disabled={!!initial}>
-            {(Object.keys(KINDS) as Kind[]).map((k) => <option key={k} value={k}>{KINDS[k].label}</option>)}
+          <select value={kind} onChange={(e) => { setKind(e.target.value as SubmitKind); setType(""); }} disabled={!!initial}>
+            {SUBMIT_KINDS.map((k) => <option key={k} value={k}>{KINDS[k].label}</option>)}
           </select>
         </label>
       </div>

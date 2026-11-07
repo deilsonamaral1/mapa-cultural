@@ -6,7 +6,7 @@ import "leaflet.markercluster/dist/MarkerCluster.Default.css";
 import L from "leaflet";
 import "leaflet.markercluster";
 import { useEffect, useRef } from "react";
-import { MapContainer, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, ZoomControl, useMap } from "react-leaflet";
 import { KINDS, SOURCES, fmtDate, type Item, type Kind } from "@/lib/mapas";
 
 const LAT = Number(process.env.NEXT_PUBLIC_MAP_LAT ?? -3.9014);
@@ -39,9 +39,9 @@ function iconFor(kind: Kind) {
   return (icons[kind] ??= L.divIcon({
     className: "mc-pin",
     html: `<span style="background:${KINDS[kind].color}"></span>`,
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    popupAnchor: [0, -12],
+    iconSize: [26, 26],
+    iconAnchor: [13, 31], // a ponta do pino fica sobre a coordenada
+    popupAnchor: [0, -32],
   }));
 }
 
@@ -123,10 +123,13 @@ function Layer({ items, fitKey, focus, me, visible, onMarkerClick }: Props) {
 
 export default function MapView(props: Props) {
   return (
-    <MapContainer center={[LAT, LNG]} zoom={ZOOM} className="h-full w-full" scrollWheelZoom>
+    <MapContainer center={[LAT, LNG]} zoom={ZOOM} className="h-full w-full" scrollWheelZoom zoomControl={false}>
+      <ZoomControl position="bottomright" />
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+        subdomains="abcd"
+        maxZoom={19}
       />
       <Layer {...props} />
     </MapContainer>

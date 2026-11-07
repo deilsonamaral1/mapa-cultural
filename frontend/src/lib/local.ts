@@ -1,5 +1,5 @@
 import { APPWRITE, Query, databases } from "@/lib/appwrite";
-import type { FetchResult, Item, Kind } from "@/lib/mapas";
+import type { FetchResult, Item, SubmitKind } from "@/lib/mapas";
 
 type Doc = Record<string, any>;
 
@@ -12,7 +12,7 @@ const date = (v: unknown): Date | null => {
 };
 
 /** Cadastros deste site já APROVADOS (coleção pública `published` no Appwrite). */
-export async function fetchLocal(kind: Kind, opts: { q?: string }): Promise<FetchResult> {
+export async function fetchLocal(kind: SubmitKind, opts: { q?: string }): Promise<FetchResult> {
   const r = await databases.listDocuments(APPWRITE.database, APPWRITE.published, [
     Query.equal("kind", kind),
     Query.limit(500),

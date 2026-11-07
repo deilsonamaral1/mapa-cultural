@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import Icon from "@/components/Icon";
 import SiteHeader from "@/components/SiteHeader";
 import { APPWRITE, Query, databases, errMsg, publicData, type EntryStatus, type Submission } from "@/lib/appwrite";
 import { KINDS, fmtDate } from "@/lib/mapas";
@@ -93,23 +94,28 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-4xl space-y-5 px-4 py-8">
         {loading && <p className="text-gray-500">Carregando…</p>}
 
         {!loading && !user && (
-          <div className="rounded-lg border bg-white p-6 text-center">
-            <p className="mb-3">Entre com a conta de administrador.</p>
-            <Link href="/entrar" className="rounded bg-brand px-5 py-2 font-medium text-white">Entrar</Link>
+          <div className="mx-auto max-w-md rounded-2xl border bg-white p-8 text-center shadow-lift">
+            <span className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-full bg-brand-soft text-brand"><Icon name="shield" className="h-6 w-6" /></span>
+            <h1 className="text-xl font-bold">Área da equipe</h1>
+            <p className="mt-2 text-sm text-slate-600">Entre com a conta de administrador para aprovar os cadastros dos agentes.</p>
+            <Link href="/entrar" className="mt-5 inline-block rounded-full bg-sea px-6 py-2.5 font-semibold text-white hover:bg-sea-deep">Entrar</Link>
           </div>
         )}
 
         {!loading && user && !isAdmin && (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-6">
-            <p className="font-medium text-amber-900">Esta conta não é de administrador.</p>
-            <p className="mt-1 text-sm text-amber-800">
-              No Appwrite, abra Auth → seu usuário → Labels e adicione <code className="rounded bg-white px-1">admin</code>. Depois saia e entre de novo aqui.
+          <div className="mx-auto max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-6">
+            <h1 className="font-display text-lg font-semibold text-amber-900">Esta conta não tem acesso de administração</h1>
+            <p className="mt-2 text-sm text-amber-900/80">
+              Você entrou como {user.email}. Para aprovar cadastros, entre com a conta de administrador do site.
+            </p>
+            <p className="mt-2 text-sm text-amber-900/80">
+              Quem cuida do site dá o acesso no Appwrite: Auth, abrir o usuário, Labels, adicionar <code className="rounded bg-white px-1">admin</code>. Depois é só sair e entrar de novo.
             </p>
           </div>
         )}
@@ -133,7 +139,7 @@ export default function AdminPage() {
             <ul className="space-y-3">
               {list.map((s) => (
                 <li key={s.$id} className="rounded-lg border bg-white p-4 shadow-sm">
-                  <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: KINDS[s.kind].color }}>{KINDS[s.kind].label}</div>
+                  <div className="text-xs font-semibold" style={{ color: KINDS[s.kind].color }}>{KINDS[s.kind].label}</div>
                   <h2 className="text-lg font-semibold leading-snug">{s.name}</h2>
                   <p className="text-xs text-gray-500">Enviado por {s.ownerName || "—"} em {new Date(s.$createdAt).toLocaleDateString("pt-BR")}</p>
                   <p className="mt-2 text-sm text-gray-700">{s.shortDescription}</p>

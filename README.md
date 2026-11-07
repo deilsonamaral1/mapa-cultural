@@ -16,11 +16,17 @@ Agentes e administração usam o **Appwrite** (Auth + Databases). Não há backe
 | `/cadastro`, `/entrar` | qualquer pessoa | cria conta e entra |
 | `/painel` | agente logado | cria, edita e acompanha cadastros (agente, espaço, evento) |
 | `/admin` | conta com o rótulo `admin` | aprova, rejeita (com motivo) ou tira do mapa |
+| `/mapa?tab=project` e `?tab=opportunity` | público | Projetos e Oportunidades, lidos dos mapas oficiais (com prazo de inscrição) |
 | `/mapa` | público | mostra os mapas oficiais **e** os cadastros aprovados (filtro "Site") |
 
 **Como a segurança funciona.** Há duas coleções. Em `submissions` qualquer pessoa logada cria, e cada agente só
 vê os próprios envios. Em `published` o público só lê, e **somente o rótulo `admin` grava**. Aprovar é copiar o
 envio para `published`; por isso ninguém consegue se aprovar sozinho. Editar um cadastro volta o status para pendente.
+
+**Acesso do administrador.** É a conta (e-mail e senha) que você criou em `/cadastro` e marcou com o rótulo `admin`
+no Appwrite. Entre em `/entrar`: o cabeçalho passa a mostrar o botão **Administração** (só para quem tem o rótulo),
+que leva a `/admin`. O rodapé do site também tem o link "Administração da equipe". Para dar acesso a outra pessoa,
+repita o passo 3 abaixo na conta dela.
 
 **Configuração (uma vez):**
 1. No Appwrite, crie uma **chave de API** com escopo de banco de dados (leitura e escrita) e rode, no seu computador:
@@ -46,7 +52,7 @@ precisa tirá-lo do mapa em `/admin`; a verificação de e-mail do Appwrite aind
 ## Modo atual no Netlify (sem backend)
 
 A tela inicial (`/`) é a página de boas-vindas; o mapa fica em `/mapa` (aceita `?tab=event|space|agent&q=busca`).
-Fotos opcionais do topo: `frontend/public/hero/1.jpg`, `2.jpg`, `3.jpg` (veja `LEIAME.txt` na pasta).
+A ilustração da tela inicial é um SVG (`components/HeroArt.tsx`); as cores da marca ficam em `frontend/tailwind.config.ts`.
 
 O mapa lê **ao vivo** os Mapas Culturais de Aquiraz e do Ceará pela API pública deles,
 passando pelo proxy definido em `netlify.toml` (`/proxy/aquiraz/*` e `/proxy/estado/*`), o que evita

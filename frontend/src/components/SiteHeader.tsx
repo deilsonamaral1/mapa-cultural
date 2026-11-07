@@ -1,39 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { SOURCES } from "@/lib/mapas";
+import { useEffect, useState } from "react";
+import Icon from "@/components/Icon";
+import { KINDS, KIND_ORDER, type Kind } from "@/lib/mapas";
 import { useUser } from "@/lib/useUser";
 
-const official = SOURCES.aquiraz.site;
-
-// Eventos, Espaços e Agentes são lidos no mapa deste site; Projetos e Oportunidades abrem no mapa oficial.
-const NAV = [
-  { label: "Eventos", icon: "📅", href: "/mapa?tab=event", external: false },
-  { label: "Espaços", icon: "🏛️", href: "/mapa?tab=space", external: false },
-  { label: "Agentes", icon: "👤", href: "/mapa?tab=agent", external: false },
-  { label: "Projetos", icon: "📋", href: `${official}/busca/##(global:(enabled:(project:!t),filterEntity:project))`, external: true },
-  { label: "Oportunidades", icon: "💡", href: `${official}/busca/##(global:(enabled:(opportunity:!t),filterEntity:opportunity))`, external: true },
-] as const;
-
-const ITEM = "flex min-w-[68px] flex-col items-center justify-center gap-0.5 px-2.5 py-2 hover:bg-gray-50 sm:min-w-[84px]";
-
-export function Logo() {
+export function Logo({ light = false }: { light?: boolean }) {
   return (
-    <Link href="/" className="flex items-center gap-2.5" aria-label="Mapa Cultural de Aquiraz — início">
-      <svg width="34" height="40" viewBox="0 0 24 28" aria-hidden>
-        <defs>
-          <linearGradient id="pin" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#f5a400" />
-            <stop offset=".5" stopColor="#d0123e" />
-            <stop offset="1" stopColor="#1b4f8a" />
-          </linearGradient>
-        </defs>
-        <path d="M12 1C7.6 1 4 4.6 4 9c0 6 8 17 8 17s8-11 8-17c0-4.4-3.6-8-8-8z" fill="url(#pin)" />
-        <circle cx="12" cy="9" r="3.4" fill="#fff" />
+    <Link href="/" className="flex items-center gap-2.5" aria-label="Mapa Cultural de Aquiraz, página inicial">
+      <svg width="38" height="38" viewBox="0 0 40 40" aria-hidden="true">
+        <rect width="40" height="40" rx="11" fill={light ? "#ffffff" : "#0b3a5c"} />
+        <path d="M19 7v21H9z" fill={light ? "#0b3a5c" : "#ffffff"} />
+        <path d="M21.5 11v17H31z" fill="#f2a516" />
+        <path d="M7 30.5h26l-3.2 4.5H10.2z" fill={light ? "#0b3a5c" : "#ffffff"} />
       </svg>
       <span className="leading-none">
-        <span className="block text-[17px] font-extrabold uppercase tracking-tight text-[#1b4f8a]">Mapa Cultural</span>
-        <span className="block text-[13px] font-bold uppercase tracking-tight text-gray-600">de Aquiraz</span>
+        <span className={`block font-display text-[19px] font-bold ${light ? "text-white" : "text-sea"}`}>Mapa Cultural</span>
+        <span className={`mt-0.5 block text-[13px] font-medium ${light ? "text-white/70" : "text-slate-500"}`}>de Aquiraz</span>
       </span>
     </Link>
   );
@@ -41,59 +25,84 @@ export function Logo() {
 
 export default function SiteHeader() {
   const { user, loading, isAdmin, logout } = useUser();
+  const [tab, setTab] = useState<Kind | null>(null);
+
+  // destaca a categoria aberta em /mapa?tab=... (lido no navegador, sem useSearchParams)
+  useEffect(() => {
+    if (window.location.pathname !== "/mapa") return;
+    const t = new URLSearchParams(window.location.search).get("tab") as Kind | null;
+    setTab(t && t in KINDS ? t : "event");
+  }, []);
+
+  const nav = (
+    <>
+      {KIND_ORDER.map((k) => (
+        // <a> comum: a página /mapa lê ?tab= ao abrir
+        <a
+          key={k}
+          href={`/mapa?tab=${k}`}
+          aria-current={tab === k ? "page" : undefined}
+          className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-medium transition ${
+            tab === k ? "bg-sea text-white" : "text-slate-700 hover:bg-slate-100"
+          }`}
+        >
+          <Icon name={k} className="h-[18px] w-[18px]" />
+          {KINDS[k].plural}
+        </a>
+      ))}
+    </>
+  );
 
   return (
-    <header className="z-20 flex shrink-0 items-stretch justify-between gap-2 border-b bg-white px-4 shadow-sm">
-      <div className="flex items-center py-2">
+    <header className="sticky top-0 z-30 shrink-0 border-b border-slate-200/80 bg-white/90 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
         <Logo />
+
+        <nav aria-label="Categorias" className="hidden items-center gap-1 lg:flex">{nav}</nav>
+
+        <div className="flex items-center gap-1.5 text-sm font-medium">
+          {!loading && user && (
+            <>
+              {isAdmin && (
+                <Link href="/admin" className="flex items-center gap-1.5 rounded-full bg-sun/15 px-3.5 py-2 text-sun-dark hover:bg-sun/25">
+                  <Icon name="shield" className="h-[18px] w-[18px]" />
+                  <span>Administração</span>
+                </Link>
+              )}
+              <Link href="/painel" className="flex items-center gap-1.5 rounded-full bg-sea px-3.5 py-2 text-white hover:bg-sea-deep">
+                <Icon name="panel" className="h-[18px] w-[18px]" />
+                <span>Meu painel</span>
+              </Link>
+              <button
+                onClick={async () => {
+                  await logout();
+                  window.location.href = "/";
+                }}
+                aria-label="Sair"
+                title="Sair"
+                className="grid h-9 w-9 place-items-center rounded-full text-slate-600 hover:bg-slate-100"
+              >
+                <Icon name="logout" className="h-[18px] w-[18px]" />
+              </button>
+            </>
+          )}
+
+          {!loading && !user && (
+            <>
+              <Link href="/entrar" className="flex items-center gap-1.5 rounded-full px-3.5 py-2 text-slate-700 hover:bg-slate-100">
+                <Icon name="lock" className="h-[18px] w-[18px]" />
+                Entrar
+              </Link>
+              <Link href="/cadastro" className="rounded-full bg-sun px-4 py-2 font-semibold text-ink shadow-sm hover:bg-[#ffb62e]">
+                Cadastre-se
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
-      <nav className="flex min-w-0 items-stretch overflow-x-auto text-xs font-semibold text-gray-800">
-        {NAV.map((n) => (
-          // <a> comum nos links do mapa: a página /mapa lê ?tab= ao abrir
-          <a key={n.label} href={n.href} className={ITEM} {...(n.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
-            <span aria-hidden className="text-lg leading-none">{n.icon}</span>
-            <span>{n.label}</span>
-          </a>
-        ))}
-
-        {!loading && user && (
-          <>
-            {isAdmin && (
-              <Link href="/admin" className={ITEM}>
-                <span aria-hidden className="text-lg leading-none">🛡️</span>
-                <span>Aprovações</span>
-              </Link>
-            )}
-            <Link href="/painel" className={ITEM}>
-              <span aria-hidden className="text-lg leading-none">🗂️</span>
-              <span>Meu painel</span>
-            </Link>
-            <button
-              onClick={async () => {
-                await logout();
-                window.location.href = "/";
-              }}
-              className={ITEM}
-            >
-              <span aria-hidden className="text-lg leading-none">🚪</span>
-              <span>Sair</span>
-            </button>
-          </>
-        )}
-
-        {!loading && !user && (
-          <>
-            <Link href="/entrar" className={ITEM}>
-              <span aria-hidden className="text-lg leading-none">🔒</span>
-              <span>Entrar</span>
-            </Link>
-            <Link href="/cadastro" className="my-2 ml-2 flex items-center self-center whitespace-nowrap rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark">
-              Cadastre-se
-            </Link>
-          </>
-        )}
-      </nav>
+      {/* celular e tablet: categorias em uma faixa que rola para o lado */}
+      <nav aria-label="Categorias" className="flex gap-1 overflow-x-auto px-4 pb-2.5 lg:hidden">{nav}</nav>
     </header>
   );
 }

@@ -99,7 +99,7 @@ export default function PainelPage() {
                 <li key={s.$id} className="rounded-lg border bg-white p-4 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: KINDS[s.kind].color }}>{KINDS[s.kind].label}</div>
+                      <div className="text-xs font-semibold" style={{ color: KINDS[s.kind].color }}>{KINDS[s.kind].label}</div>
                       <h2 className="font-semibold leading-snug">{s.name}</h2>
                     </div>
                     <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS[s.status].cls}`}>{STATUS[s.status].label}</span>
