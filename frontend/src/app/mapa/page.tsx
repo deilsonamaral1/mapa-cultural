@@ -51,6 +51,7 @@ export default function MapaPage() {
   const [geoError, setGeoError] = useState("");
   const [view, setView] = useState<"list" | "map">("list"); // só vale no celular
   const [ready, setReady] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false); // celular: filtros recolhidos
 
   // vindo da tela inicial: /mapa?tab=space&q=teatro&period=week (sem useSearchParams, que exigiria Suspense)
   useEffect(() => {
@@ -185,14 +186,14 @@ export default function MapaPage() {
   const panel = (
     <>
       <div className="space-y-3 p-4">
-        <div role="tablist" aria-label="Categoria" className="flex flex-wrap gap-1.5">
+        <div role="tablist" aria-label="Categoria" className="no-scrollbar -mx-4 flex gap-1.5 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:px-0">
           {KIND_ORDER.map((k) => (
             <button
               key={k}
               role="tab"
               aria-selected={tab === k}
               onClick={() => { setTab(k); setSelected(null); }}
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition ${
                 tab === k ? "text-white shadow-sm" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
               }`}
               style={tab === k ? { background: KINDS[k].color } : undefined}
@@ -214,6 +215,16 @@ export default function MapaPage() {
           />
         </div>
 
+        <button
+          onClick={() => setFiltersOpen((v) => !v)}
+          aria-expanded={filtersOpen}
+          className="flex w-full items-center justify-between rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-medium text-slate-700 md:hidden"
+        >
+          <span className="flex items-center gap-2"><Icon name="filter" className="h-4 w-4" />Filtros</span>
+          <span className="text-xs text-slate-500">{filtersOpen ? "Ocultar" : "Mostrar"}</span>
+        </button>
+
+        <div className={`${filtersOpen ? "block" : "hidden"} space-y-3 md:block`}>
         <div className="flex flex-wrap items-center gap-1.5">
           {sourceKeys.map((k) => (
             <button key={k} onClick={() => toggleSource(k)} aria-pressed={active.includes(k)} className={chip(active.includes(k))}>
@@ -248,6 +259,7 @@ export default function MapaPage() {
             Só com inscrições abertas
           </button>
         )}
+        </div>
       </div>
 
       {failed.map((k) => (
@@ -269,7 +281,7 @@ export default function MapaPage() {
       )}
       {!loading && !listOnly && withoutPin > 0 && <p className="px-4 py-1.5 text-xs text-slate-500">{withoutPin} sem localização no mapa.</p>}
 
-      <ul className={`${listOnly ? "" : "min-h-0 flex-1 overflow-y-auto"} space-y-3 p-4`}>
+      <ul className={`${listOnly ? "" : "min-h-0 flex-1 overflow-y-auto"} space-y-3 p-4 pb-24 md:pb-4`}>
         {!loading && failed.length === 0 && visible.length === 0 && (
           <li className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-600">
             Nada encontrado. Tente outra palavra ou outra categoria.
@@ -354,7 +366,7 @@ export default function MapaPage() {
         <div className="grid min-h-0 flex-1 md:grid-cols-[440px_1fr]">
           <aside className={`${view === "list" ? "flex" : "hidden"} min-h-0 flex-col border-r border-slate-200 bg-cal md:flex`}>{panel}</aside>
 
-          <main className={`${view === "map" ? "block" : "hidden"} relative min-h-[300px] md:block`}>
+          <main className={`${view === "map" ? "block" : "hidden"} relative h-full min-h-[300px] md:block`}>
             <MapView items={visible} fitKey={fitKey} focus={focus} me={me} visible={view === "map"} onMarkerClick={(key) => setSelected(key)} />
             {!loading && (
               <div className="pointer-events-none absolute left-4 top-4 z-[500] rounded-full bg-white/95 px-3.5 py-1.5 text-xs font-medium text-slate-700 shadow-lift">

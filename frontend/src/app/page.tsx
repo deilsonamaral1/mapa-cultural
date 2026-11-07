@@ -37,10 +37,10 @@ export default function Home() {
 
       {/* ---------- abertura ---------- */}
       <section className="relative isolate overflow-hidden bg-gradient-to-b from-sea-deep via-sea to-sea-mid text-white">
-        <HeroArt className="pointer-events-none absolute -right-10 bottom-0 -z-10 hidden h-[115%] w-auto max-w-none opacity-95 md:block lg:right-6" />
+        <HeroArt className="pointer-events-none absolute -right-24 bottom-0 -z-10 h-[80%] w-auto max-w-none opacity-30 md:-right-10 md:h-[115%] md:opacity-95 lg:right-6" />
 
-        <div className="mx-auto max-w-7xl px-4 pb-32 pt-14 md:pb-44 md:pt-24">
-          <h1 className="max-w-2xl text-5xl font-extrabold leading-[1.02] sm:text-6xl lg:text-7xl">Encontre a cultura de {city}</h1>
+        <div className="mx-auto max-w-7xl px-4 pb-28 pt-10 md:pb-44 md:pt-24">
+          <h1 className="max-w-2xl text-4xl font-extrabold leading-[1.05] sm:text-6xl lg:text-7xl">Encontre a cultura de {city}</h1>
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/85">
             Eventos, espaços, agentes, projetos e oportunidades da cidade e do Ceará, reunidos em um só mapa.
           </p>
@@ -55,7 +55,7 @@ export default function Home() {
                 className="!border-0 !bg-transparent !py-3.5 !pl-11 !text-base text-ink !shadow-none !ring-0"
               />
             </div>
-            <select name="tab" aria-label="Buscar em" defaultValue="event" className="!w-auto !border-0 !bg-slate-100 !py-3.5 !pr-8 text-ink sm:!w-44">
+            <select name="tab" aria-label="Buscar em" defaultValue="event" className="!w-full !border-0 !bg-slate-100 !py-3.5 !pr-8 text-ink sm:!w-44">
               {KIND_ORDER.map((k) => (
                 <option key={k} value={k}>{KINDS[k].plural}</option>
               ))}

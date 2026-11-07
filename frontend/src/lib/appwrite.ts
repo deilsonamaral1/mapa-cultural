@@ -105,6 +105,13 @@ export function errMsg(e: unknown): string {
   if (x?.type === "user_already_exists") return "Este e-mail já está cadastrado. Tente entrar.";
   if (x?.type === "user_invalid_credentials") return "E-mail ou senha inválidos.";
   if (x?.type === "general_rate_limit_exceeded" || x?.code === 429) return "Muitas tentativas. Aguarde um pouco e tente de novo.";
+  // O Appwrite usa 401 tanto para "não está logado" quanto para "logado, mas sem permissão na tabela".
+  if (x?.type === "user_unauthorized" || (x?.code === 401 && /not authorized/i.test(m)))
+    return "Sem permissão nesta tabela do Appwrite. Em Databases, abra a tabela, Settings, Permissions: em submissions, dê Users → Create e ligue Row security; em published, dê Any → Read.";
+  const col = m.match(/attribute not found in schema:?\s*(\w+)/i);
+  if (col) return `Falta a coluna "${col[1]}" na tabela do Appwrite. Crie uma coluna do tipo String com esse nome exato.`;
+  if (/index not found|requires an index/i.test(m)) return "Falta um índice na tabela do Appwrite (aba Indexes). Veja a lista no README.";
+  if (/collection with the requested id/i.test(m) || /table with the requested id/i.test(m)) return "Tabela não encontrada no Appwrite. Confira o ID da tabela.";
   if (x?.code === 401) return "Você precisa entrar para continuar.";
   if (x?.code === 400 && /password/i.test(m)) return "A senha deve ter pelo menos 8 caracteres.";
   if (e instanceof TypeError || /failed to fetch|network/i.test(m))

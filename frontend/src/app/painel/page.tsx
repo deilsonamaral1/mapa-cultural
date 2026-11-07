@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import EntryForm from "@/components/EntryForm";
+import RoleBadge from "@/components/RoleBadge";
 import SiteHeader from "@/components/SiteHeader";
 import { APPWRITE, Query, databases, errMsg, rowToSubmission, type EntryStatus, type Submission } from "@/lib/appwrite";
 import { KINDS } from "@/lib/mapas";
@@ -15,7 +16,7 @@ const STATUS: Record<EntryStatus, { label: string; cls: string }> = {
 };
 
 export default function PainelPage() {
-  const { user, loading } = useUser();
+  const { user, loading, isAdmin } = useUser();
   const [list, setList] = useState<Submission[]>([]);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
@@ -54,7 +55,7 @@ export default function PainelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <SiteHeader />
       <main className="mx-auto max-w-3xl space-y-5 px-4 py-8">
         {loading && <p className="text-gray-500">Carregando…</p>}
@@ -70,8 +71,21 @@ export default function PainelPage() {
           <>
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <h1 className="text-2xl font-bold">Meu painel</h1>
-                <p className="text-sm text-gray-600">Olá, {user.name || user.email}. Tudo que você enviar é revisado pela equipe antes de aparecer no mapa.</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-bold">Meu painel</h1>
+                  <RoleBadge admin={isAdmin} />
+                </div>
+                <p className="mt-1 text-sm text-slate-600">
+                  Olá, {user.name || user.email}.{" "}
+                  {isAdmin
+                    ? "Você é administrador: aprova os cadastros da equipe e também pode enviar os seus."
+                    : "Você é agente: tudo que enviar é revisado pela equipe antes de aparecer no mapa."}
+                </p>
+                {isAdmin && (
+                  <Link href="/admin" className="mt-2 inline-flex rounded-full bg-sun/15 px-4 py-2 text-sm font-semibold text-sun-dark hover:bg-sun/25">
+                    Ir para a Administração
+                  </Link>
+                )}
               </div>
               {!editing && (
                 <button onClick={() => setEditing("new")} className="rounded bg-brand px-5 py-2 font-medium text-white hover:bg-brand-dark">+ Novo cadastro</button>

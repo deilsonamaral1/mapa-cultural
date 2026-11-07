@@ -42,3 +42,6 @@
 .leaflet-bar a { color: #0b3a5c; }
 .leaflet-container .marker-cluster-small, .leaflet-container .marker-cluster-medium, .leaflet-container .marker-cluster-large { background-color: rgba(15, 76, 117, .22); }
 .leaflet-container .marker-cluster-small div, .leaflet-container .marker-cluster-medium div, .leaflet-container .marker-cluster-large div { background-color: #0f4c75; color: #fff; font-weight: 700; box-shadow: 0 2px 8px rgba(7,42,68,.35); }
+
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
