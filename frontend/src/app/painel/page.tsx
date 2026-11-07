@@ -81,6 +81,17 @@ export default function PainelPage() {
                     ? "Você é administrador: aprova os cadastros da equipe e também pode enviar os seus."
                     : "Você é agente: tudo que enviar é revisado pela equipe antes de aparecer no mapa."}
                 </p>
+                {!isAdmin && (
+                  <details className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
+                    <summary className="cursor-pointer font-medium">Sou o responsável pelo site: como virar administrador?</summary>
+                    <ol className="mt-2 list-decimal space-y-1 pl-5">
+                      <li>No Appwrite, abra <strong>Auth → Users</strong> e clique na sua conta ({user.email}).</li>
+                      <li>Em <strong>Labels</strong>, adicione <code className="rounded bg-slate-100 px-1">admin</code> e salve.</li>
+                      <li>Volte aqui, clique no ícone de sair e entre de novo. O selo muda para <strong>Administrador</strong>.</li>
+                    </ol>
+                    <p className="mt-2 text-xs text-slate-500">ID da sua conta no Appwrite: {user.$id}</p>
+                  </details>
+                )}
                 {isAdmin && (
                   <Link href="/admin" className="mt-2 inline-flex rounded-full bg-sun/15 px-4 py-2 text-sm font-semibold text-sun-dark hover:bg-sun/25">
                     Ir para a Administração
