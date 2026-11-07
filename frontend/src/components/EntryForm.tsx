@@ -1,9 +1,8 @@
 "use client";
 
-import { Permission, Role } from "appwrite";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { APPWRITE, ID, databases, errMsg, packEntry, type EntryData, type Submission } from "@/lib/appwrite";
+import { T, errMsg, supabase, type EntryData, type Submission } from "@/lib/supabase";
 import { KINDS, SUBMIT_KINDS, type SubmitKind } from "@/lib/mapas";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
@@ -98,15 +97,11 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
     try {
       if (initial) {
         // editar devolve o cadastro para aprovação
-        await databases.updateDocument(APPWRITE.database, APPWRITE.submissions, initial.$id, { data: packEntry({ ...data, ownerName }), status: "pending", note: null });
+        const r = await supabase.from(T.cadastros).update({ data: { ...data, ownerName }, status: "pending", note: null }).eq("id", initial.id);
+        if (r.error) throw r.error;
       } else {
-        await databases.createDocument(
-          APPWRITE.database,
-          APPWRITE.submissions,
-          ID.unique(),
-          { data: packEntry({ ...data, ownerName }), ownerId, status: "pending" },
-          [Permission.read(Role.user(ownerId)), Permission.update(Role.user(ownerId)), Permission.delete(Role.user(ownerId))],
-        );
+        const r = await supabase.from(T.cadastros).insert({ data: { ...data, ownerName }, owner_id: ownerId, status: "pending" });
+        if (r.error) throw r.error;
       }
       onSaved();
     } catch (err) {

@@ -1,19 +1,31 @@
 "use client";
 
-import type { Models } from "appwrite";
 import { useCallback, useEffect, useState } from "react";
-import { account } from "@/lib/appwrite";
+import { T, supabase } from "@/lib/supabase";
 
-/** Usuário logado no Appwrite. `isAdmin` = a conta tem o rótulo "admin" (definido no console do Appwrite). */
+export type AppUser = { id: string; email: string; name: string };
+
+/** Usuário logado. `isAdmin` vem da tabela mc_perfis (papel = 'admin'); quem protege os dados são as regras do banco. */
 export function useUser() {
-  const [user, setUser] = useState<Models.User<Models.Preferences> | null>(null);
+  const [user, setUser] = useState<AppUser | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
     try {
-      setUser(await account.get());
+      const { data } = await supabase.auth.getSession();
+      const u = data.session?.user;
+      if (!u) {
+        setUser(null);
+        setIsAdmin(false);
+        return;
+      }
+      setUser({ id: u.id, email: u.email ?? "", name: (u.user_metadata?.name as string) ?? "" });
+      const p = await supabase.from(T.perfis).select("papel").eq("id", u.id).maybeSingle();
+      setIsAdmin(p.data?.papel === "admin");
     } catch {
-      setUser(null); // visitante (sem login)
+      setUser(null);
+      setIsAdmin(false);
     } finally {
       setLoading(false);
     }
@@ -25,13 +37,13 @@ export function useUser() {
 
   const logout = useCallback(async () => {
     try {
-      await account.deleteSession("current");
+      await supabase.auth.signOut();
     } catch {
       /* já estava deslogado */
     }
     setUser(null);
+    setIsAdmin(false);
   }, []);
 
-  const isAdmin = !!user?.labels?.includes("admin");
   return { user, loading, isAdmin, refresh, logout };
 }

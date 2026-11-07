@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 import SiteHeader from "@/components/SiteHeader";
-import { APPWRITE, Query, databases, errMsg, packEntry, publicData, rowToSubmission, type EntryStatus, type Submission } from "@/lib/appwrite";
+import { T, errMsg, publicData, rowToSubmission, supabase, type EntryStatus, type Submission } from "@/lib/supabase";
 import { KINDS, fmtDate } from "@/lib/mapas";
 import { useUser } from "@/lib/useUser";
-import { Permission, Role } from "appwrite";
+import Equipe from "@/components/Equipe";
 
 const TABS: { key: EntryStatus; label: string }[] = [
   { key: "pending", label: "Pendentes" },
@@ -23,19 +23,22 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [view, setView] = useState<"aprovacoes" | "equipe">("aprovacoes");
 
   const load = useCallback(async () => {
     if (!isAdmin) return;
     setBusy(true);
     try {
+      const count = (st: EntryStatus) => supabase.from(T.cadastros).select("id", { count: "exact", head: true }).eq("status", st);
       const [r, p, a, j] = await Promise.all([
-        databases.listDocuments(APPWRITE.database, APPWRITE.submissions, [Query.equal("status", tab), Query.orderDesc("$createdAt"), Query.limit(100)]),
-        ...(["pending", "approved", "rejected"] as const).map((s) =>
-          databases.listDocuments(APPWRITE.database, APPWRITE.submissions, [Query.equal("status", s), Query.limit(1)]),
-        ),
+        supabase.from(T.cadastros).select("*").eq("status", tab).order("created_at", { ascending: false }).limit(100),
+        count("pending"),
+        count("approved"),
+        count("rejected"),
       ]);
-      setList(r.documents.map(rowToSubmission));
-      setCounts({ pending: p.total, approved: a.total, rejected: j.total });
+      if (r.error) throw r.error;
+      setList((r.data ?? []).map(rowToSubmission));
+      setCounts({ pending: p.count ?? 0, approved: a.count ?? 0, rejected: j.count ?? 0 });
       setError("");
     } catch (e) {
       setError(errMsg(e));
@@ -50,17 +53,13 @@ export default function AdminPage() {
 
   /** Aprovar = publicar (documento público com o MESMO id do envio) e marcar o envio como aprovado. */
   async function approve(s: Submission) {
-    setWorking(s.$id);
+    setWorking(s.id);
     setError("");
     try {
-      const row = { kind: s.kind, data: packEntry(publicData(s as never)) };
-      try {
-        await databases.updateDocument(APPWRITE.database, APPWRITE.published, s.$id, row);
-      } catch (e) {
-        if ((e as { code?: number }).code !== 404) throw e;
-        await databases.createDocument(APPWRITE.database, APPWRITE.published, s.$id, row);
-      }
-      await databases.updateDocument(APPWRITE.database, APPWRITE.submissions, s.$id, { status: "approved", note: null });
+      const pub = await supabase.from(T.publicados).upsert({ id: s.id, kind: s.kind, data: publicData(s as never) });
+      if (pub.error) throw pub.error;
+      const up = await supabase.from(T.cadastros).update({ status: "approved", note: null }).eq("id", s.id);
+      if (up.error) throw up.error;
       await load();
     } catch (e) {
       setError(errMsg(e));
@@ -70,15 +69,13 @@ export default function AdminPage() {
   }
 
   async function unpublish(s: Submission, to: "pending" | "rejected", note: string | null) {
-    setWorking(s.$id);
+    setWorking(s.id);
     setError("");
     try {
-      try {
-        await databases.deleteDocument(APPWRITE.database, APPWRITE.published, s.$id);
-      } catch (e) {
-        if ((e as { code?: number }).code !== 404) throw e; // já não estava publicado
-      }
-      await databases.updateDocument(APPWRITE.database, APPWRITE.submissions, s.$id, { status: to, note });
+      const del = await supabase.from(T.publicados).delete().eq("id", s.id);
+      if (del.error) throw del.error;
+      const up = await supabase.from(T.cadastros).update({ status: to, note }).eq("id", s.id);
+      if (up.error) throw up.error;
       await load();
     } catch (e) {
       setError(errMsg(e));
@@ -115,14 +112,26 @@ export default function AdminPage() {
               Você entrou como {user.email}. Para aprovar cadastros, entre com a conta de administrador do site.
             </p>
             <p className="mt-2 text-sm text-amber-900/80">
-              Quem cuida do site dá o acesso no Appwrite: Auth, abrir o usuário, Labels, adicionar <code className="rounded bg-white px-1">admin</code>. Depois é só sair e entrar de novo.
+              Quem já é administrador pode dar o acesso em Administração, aba Equipe. Depois é só sair e entrar de novo.
             </p>
           </div>
         )}
 
         {isAdmin && (
           <>
-            <h1 className="text-2xl font-bold">Aprovações</h1>
+            <h1 className="text-2xl font-bold">Administração</h1>
+            <div className="flex gap-2 border-b border-slate-200" role="tablist" aria-label="Seções">
+              {([["aprovacoes", "Aprovações"], ["equipe", "Equipe"]] as const).map(([k, l]) => (
+                <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
+                  className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold ${view === k ? "border-sea text-sea" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+                  {l}
+                </button>
+              ))}
+            </div>
+
+            {view === "equipe" && <Equipe meId={user!.id} />}
+
+            {view === "aprovacoes" && (<>
             <div className="flex gap-1 rounded-lg bg-brand-soft p-1" role="tablist">
               {TABS.map((t) => (
                 <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
@@ -138,10 +147,10 @@ export default function AdminPage() {
 
             <ul className="space-y-3">
               {list.map((s) => (
-                <li key={s.$id} className="rounded-lg border bg-white p-4 shadow-sm">
+                <li key={s.id} className="rounded-lg border bg-white p-4 shadow-sm">
                   <div className="text-xs font-semibold" style={{ color: KINDS[s.kind].color }}>{KINDS[s.kind].label}</div>
                   <h2 className="text-lg font-semibold leading-snug">{s.name}</h2>
-                  <p className="text-xs text-gray-500">Enviado por {s.ownerName || "—"} em {new Date(s.$createdAt).toLocaleDateString("pt-BR")}</p>
+                  <p className="text-xs text-gray-500">Enviado por {s.ownerName || "—"} em {new Date(s.createdAt).toLocaleDateString("pt-BR")}</p>
                   <p className="mt-2 text-sm text-gray-700">{s.shortDescription}</p>
                   <dl className="mt-2 grid gap-x-4 gap-y-0.5 text-sm text-gray-600 sm:grid-cols-2">
                     {s.type && <div><dt className="inline font-medium">Tipo: </dt><dd className="inline">{s.type}</dd></div>}
@@ -160,23 +169,24 @@ export default function AdminPage() {
 
                   <div className="mt-3 flex flex-wrap gap-2">
                     {s.status !== "approved" && (
-                      <button disabled={working === s.$id} onClick={() => approve(s)} className="rounded bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
-                        {working === s.$id ? "Publicando…" : "Aprovar e publicar"}
+                      <button disabled={working === s.id} onClick={() => approve(s)} className="rounded bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
+                        {working === s.id ? "Publicando…" : "Aprovar e publicar"}
                       </button>
                     )}
                     {s.status === "approved" && (
                       <>
-                        <button disabled={working === s.$id} onClick={() => approve(s)} className="rounded border px-4 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50" title="Atualiza o que está no mapa com o texto atual do cadastro">Republicar</button>
-                        <button disabled={working === s.$id} onClick={() => unpublish(s, "pending", null)} className="rounded border px-4 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50">Tirar do mapa</button>
+                        <button disabled={working === s.id} onClick={() => approve(s)} className="rounded border px-4 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50" title="Atualiza o que está no mapa com o texto atual do cadastro">Republicar</button>
+                        <button disabled={working === s.id} onClick={() => unpublish(s, "pending", null)} className="rounded border px-4 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50">Tirar do mapa</button>
                       </>
                     )}
                     {s.status !== "rejected" && (
-                      <button disabled={working === s.$id} onClick={() => reject(s)} className="rounded border border-red-300 px-4 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50">Rejeitar</button>
+                      <button disabled={working === s.id} onClick={() => reject(s)} className="rounded border border-red-300 px-4 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50">Rejeitar</button>
                     )}
                   </div>
                 </li>
               ))}
             </ul>
+            </>)}
           </>
         )}
       </main>

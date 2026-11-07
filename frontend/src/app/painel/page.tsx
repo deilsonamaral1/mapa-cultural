@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import EntryForm from "@/components/EntryForm";
 import RoleBadge from "@/components/RoleBadge";
 import SiteHeader from "@/components/SiteHeader";
-import { APPWRITE, Query, databases, errMsg, rowToSubmission, type EntryStatus, type Submission } from "@/lib/appwrite";
+import { T, errMsg, rowToSubmission, supabase, type EntryStatus, type Submission } from "@/lib/supabase";
 import { KINDS } from "@/lib/mapas";
 import { useUser } from "@/lib/useUser";
 
@@ -26,12 +26,9 @@ export default function PainelPage() {
     if (!user) return;
     setBusy(true);
     try {
-      const r = await databases.listDocuments(APPWRITE.database, APPWRITE.submissions, [
-        Query.equal("ownerId", user.$id),
-        Query.orderDesc("$createdAt"),
-        Query.limit(100),
-      ]);
-      setList(r.documents.map(rowToSubmission));
+      const r = await supabase.from(T.cadastros).select("*").eq("owner_id", user.id).order("created_at", { ascending: false }).limit(100);
+      if (r.error) throw r.error;
+      setList((r.data ?? []).map(rowToSubmission));
       setError("");
     } catch (e) {
       setError(`Ao carregar seus cadastros: ${errMsg(e)}`);
@@ -47,7 +44,8 @@ export default function PainelPage() {
   async function remove(s: Submission) {
     if (!confirm(`Apagar "${s.name}"? Se já estiver publicado, a administração precisa despublicar.`)) return;
     try {
-      await databases.deleteDocument(APPWRITE.database, APPWRITE.submissions, s.$id);
+      const r = await supabase.from(T.cadastros).delete().eq("id", s.id);
+      if (r.error) throw r.error;
       load();
     } catch (e) {
       setError(errMsg(e));
@@ -81,17 +79,6 @@ export default function PainelPage() {
                     ? "Você é administrador: aprova os cadastros da equipe e também pode enviar os seus."
                     : "Você é agente: tudo que enviar é revisado pela equipe antes de aparecer no mapa."}
                 </p>
-                {!isAdmin && (
-                  <details className="mt-3 rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-700">
-                    <summary className="cursor-pointer font-medium">Sou o responsável pelo site: como virar administrador?</summary>
-                    <ol className="mt-2 list-decimal space-y-1 pl-5">
-                      <li>No Appwrite, abra <strong>Auth → Users</strong> e clique na sua conta ({user.email}).</li>
-                      <li>Em <strong>Labels</strong>, adicione <code className="rounded bg-slate-100 px-1">admin</code> e salve.</li>
-                      <li>Volte aqui, clique no ícone de sair e entre de novo. O selo muda para <strong>Administrador</strong>.</li>
-                    </ol>
-                    <p className="mt-2 text-xs text-slate-500">ID da sua conta no Appwrite: {user.$id}</p>
-                  </details>
-                )}
                 {isAdmin && (
                   <Link href="/admin" className="mt-2 inline-flex rounded-full bg-sun/15 px-4 py-2 text-sm font-semibold text-sun-dark hover:bg-sun/25">
                     Ir para a Administração
@@ -105,7 +92,7 @@ export default function PainelPage() {
 
             {editing && (
               <EntryForm
-                ownerId={user.$id}
+                ownerId={user.id}
                 ownerName={user.name || user.email}
                 initial={editing === "new" ? undefined : editing}
                 onCancel={() => setEditing(null)}
@@ -121,7 +108,7 @@ export default function PainelPage() {
 
             <ul className="space-y-3">
               {list.map((s) => (
-                <li key={s.$id} className="rounded-lg border bg-white p-4 shadow-sm">
+                <li key={s.id} className="rounded-lg border bg-white p-4 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-xs font-semibold" style={{ color: KINDS[s.kind].color }}>{KINDS[s.kind].label}</div>

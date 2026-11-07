@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { account, errMsg } from "@/lib/appwrite";
+import { T, errMsg, supabase } from "@/lib/supabase";
 
 export default function EntrarPage() {
   const router = useRouter();
@@ -17,9 +17,10 @@ export default function EntrarPage() {
     setBusy(true);
     setError("");
     try {
-      await account.createEmailPasswordSession(email.trim().toLowerCase(), password);
-      const me = await account.get();
-      router.replace(me.labels?.includes("admin") ? "/admin" : "/painel");
+      const { data, error: err } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+      if (err) throw err;
+      const p = await supabase.from(T.perfis).select("papel").eq("id", data.user.id).maybeSingle();
+      router.replace(p.data?.papel === "admin" ? "/admin" : "/painel");
     } catch (err) {
       setError(errMsg(err));
     } finally {

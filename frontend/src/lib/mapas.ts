@@ -14,7 +14,7 @@ export const SUBMIT_KINDS: SubmitKind[] = ["event", "space", "agent"];
 /** Ordem das abas, a mesma do Mapa Cultural oficial. */
 export const KIND_ORDER: Kind[] = ["event", "space", "agent", "project", "opportunity"];
 export type SourceKey = "aquiraz" | "estado" | "local";
-/** Fontes lidas das APIs oficiais (a fonte "local" são os cadastros aprovados neste site, no Appwrite). */
+/** Fontes lidas das APIs oficiais (a fonte "local" são os cadastros aprovados neste site, no Supabase). */
 export type OfficialKey = Exclude<SourceKey, "local">;
 
 export const SOURCES: Record<SourceKey, { label: string; short: string; proxy: string; site: string }> = {

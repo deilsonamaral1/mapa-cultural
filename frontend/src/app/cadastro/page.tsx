@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ID, account, errMsg } from "@/lib/appwrite";
+import { errMsg, supabase } from "@/lib/supabase";
 import { SOURCES } from "@/lib/mapas";
 
 export default function CadastroPage() {
@@ -14,6 +14,7 @@ export default function CadastroPage() {
   const [website, setWebsite] = useState(""); // campo isca: pessoas não veem, robôs preenchem
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmar, setConfirmar] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,15 +22,31 @@ export default function CadastroPage() {
     setBusy(true);
     setError("");
     try {
-      await account.create(ID.unique(), email.trim().toLowerCase(), password, name.trim());
-      await account.createEmailPasswordSession(email.trim().toLowerCase(), password);
-      router.replace("/painel");
+      const { data, error: err } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: { data: { name: name.trim() }, emailRedirectTo: `${window.location.origin}/entrar` },
+      });
+      if (err) throw err;
+      if (data.session) router.replace("/painel");
+      else setConfirmar(true); // o projeto exige confirmar o e-mail antes de entrar
     } catch (err) {
       setError(errMsg(err));
     } finally {
       setBusy(false);
     }
   }
+
+  if (confirmar)
+    return (
+      <main className="grid min-h-screen place-items-center bg-brand-soft p-4">
+        <div className="w-full max-w-sm space-y-3 rounded-lg bg-white p-6 text-center shadow">
+          <h1 className="text-xl font-semibold text-brand-dark">Confirme seu e-mail</h1>
+          <p className="text-sm text-gray-600">Enviamos um link para <strong>{email}</strong>. Clique nele e depois entre com a sua senha.</p>
+          <Link href="/entrar" className="inline-block rounded bg-brand px-5 py-2 text-white">Ir para o login</Link>
+        </div>
+      </main>
+    );
 
   return (
     <main className="grid min-h-screen place-items-center bg-brand-soft p-4">

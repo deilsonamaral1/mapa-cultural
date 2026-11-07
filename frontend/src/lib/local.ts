@@ -1,4 +1,4 @@
-import { APPWRITE, Query, databases, rowToEntry } from "@/lib/appwrite";
+import { T, rowToEntry, supabase } from "@/lib/supabase";
 import type { FetchResult, Item, SubmitKind } from "@/lib/mapas";
 
 type Doc = Record<string, any>;
@@ -11,17 +11,15 @@ const date = (v: unknown): Date | null => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-/** Cadastros deste site já APROVADOS (coleção pública `published` no Appwrite). */
+/** Cadastros deste site já APROVADOS (tabela pública `mc_publicados` no Supabase). */
 export async function fetchLocal(kind: SubmitKind, opts: { q?: string }): Promise<FetchResult> {
-  const r = await databases.listDocuments(APPWRITE.database, APPWRITE.published, [
-    Query.equal("kind", kind),
-    Query.limit(500),
-  ]);
+  const r = await supabase.from(T.publicados).select("id, data", { count: "exact" }).eq("kind", kind).limit(500);
+  if (r.error) throw r.error;
   const q = opts.q?.trim().toLowerCase();
   const now = Date.now();
 
   const items: Item[] = [];
-  for (const row of r.documents) {
+  for (const row of r.data ?? []) {
     const d = rowToEntry(row) as unknown as Doc;
     const name = txt(d.name) ?? "(sem nome)";
     if (q && !name.toLowerCase().includes(q)) continue;
@@ -32,7 +30,7 @@ export async function fetchLocal(kind: SubmitKind, opts: { q?: string }): Promis
     if (kind === "event" && startsAt && (endsAt ?? new Date(startsAt.getTime() + 3 * 3600000)).getTime() < now) continue;
 
     items.push({
-      key: `local:${kind}:${d.$id}`,
+      key: `local:${kind}:${d.id}`,
       source: "local",
       kind,
       id: 0,
@@ -52,5 +50,5 @@ export async function fetchLocal(kind: SubmitKind, opts: { q?: string }): Promis
       url: "",
     });
   }
-  return { items, truncated: r.total > 500 };
+  return { items, truncated: (r.count ?? 0) > 500 };
 }

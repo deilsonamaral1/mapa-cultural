@@ -7,55 +7,41 @@ com schema PostgreSQL/PostGIS inspirado no Mapas Culturais e módulo de sincroni
 - **backend/** FastAPI + SQLAlchemy (API, autenticação JWT, sincronização)
 - **backend/sql/** schema do banco (carregado automaticamente pelo docker compose)
 
-## Cadastro, login e aprovação (Appwrite)
+## Cadastro, login e aprovação (Supabase)
 
-Agentes e administração usam o **Appwrite** (Auth + Databases). Não há backend próprio para hospedar.
+Agentes e administração usam o **Supabase** (login + banco PostgreSQL, plano grátis). Não há backend próprio para hospedar.
 
 | Tela | Quem | O que faz |
 |---|---|---|
 | `/cadastro`, `/entrar` | qualquer pessoa | cria conta e entra |
 | `/painel` | agente logado | cria, edita e acompanha cadastros (agente, espaço, evento) |
-| `/admin` | conta com o rótulo `admin` | aprova, rejeita (com motivo) ou tira do mapa |
-| `/mapa?tab=project` e `?tab=opportunity` | público | Projetos e Oportunidades, lidos dos mapas oficiais (com prazo de inscrição) |
+| `/admin` | administrador | **Aprovações**: aprova, rejeita (com motivo) ou tira do mapa. **Equipe**: promove ou remove administradores pelo e-mail |
 | `/mapa` | público | mostra os mapas oficiais **e** os cadastros aprovados (filtro "Site") |
 
-**Como a segurança funciona.** Há duas coleções. Em `submissions` qualquer pessoa logada cria, e cada agente só
-vê os próprios envios. Em `published` o público só lê, e **somente o rótulo `admin` grava**. Aprovar é copiar o
-envio para `published`; por isso ninguém consegue se aprovar sozinho. Editar um cadastro volta o status para pendente.
+**Segurança.** As regras ficam no próprio banco (`supabase/setup.sql`, Row Level Security). O agente só vê e edita os
+próprios envios (sempre como "pendente"); o público só lê `mc_publicados`; só quem tem `papel = 'admin'` aprova,
+rejeita e promove outros administradores. A chave "anon" do site é pública por natureza; a `service_role` nunca é usada.
 
-**Acesso do administrador.** É a conta (e-mail e senha) que você criou em `/cadastro` e marcou com o rótulo `admin`
-no Appwrite. Entre em `/entrar`: o cabeçalho passa a mostrar o botão **Administração** (só para quem tem o rótulo),
-que leva a `/admin`. O rodapé do site também tem o link "Administração da equipe". Para dar acesso a outra pessoa,
-repita o passo 3 abaixo na conta dela.
+### Configuração (sem instalar nada)
 
-**Configuração pelo painel do Appwrite (sem instalar nada).** Em Databases, abra o banco e crie **duas tabelas**.
-O **Table ID** precisa ser exatamente `submissions` e `published` (na janela de criar a tabela, clique no ícone de
-lápis ao lado do nome para digitar o ID). Se as tabelas já existem com outro ID, anote o ID de cada uma (Settings da
-tabela) e use as variáveis `NEXT_PUBLIC_APPWRITE_SUBMISSIONS_ID` e `NEXT_PUBLIC_APPWRITE_PUBLISHED_ID` no Netlify.
+1. No Supabase, abra **SQL Editor**, cole todo o `supabase/setup.sql` e clique em **Run**. Ele só cria tabelas com o
+   prefixo `mc_`, então pode ser o mesmo projeto de outro sistema.
+2. **Project Settings → API**: copie a **Project URL** e a chave **anon / public**.
+3. No Netlify, **Site configuration → Environment variables**: crie `NEXT_PUBLIC_SUPABASE_URL` e
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` com esses dois valores e faça um novo deploy.
+4. Supabase → **Authentication → URL Configuration**: em *Site URL* coloque `https://mapaculturalaquiraz.netlify.app`
+   (se o projeto já serve outro site, deixe o dele em *Site URL* e adicione este em *Redirect URLs*).
+5. Crie sua conta em `/cadastro` e, no SQL Editor, rode **uma vez**:
+   `update public.mc_perfis set papel = 'admin' where email = 'seu-email@exemplo.com';`
 
-*Tabela `submissions`*
-- Colunas (todas do tipo **String**): `ownerId` (tamanho 64, obrigatória), `status` (16, obrigatória), `note` (500, opcional) e `data` (tamanho 10000, obrigatória; pode ser o tipo **Text**).
-- Índices (tipo Key): `idx_owner` na coluna `ownerId` e `idx_status` na coluna `status`.
-- Settings → Permissions: adicione **Users → Create**; e, como função personalizada `label:admin`, marque **Read, Update e Delete**. Ligue **Row security**.
-
-*Tabela `published`*
-- Colunas (String): `kind` (16, obrigatória) e `data` (10000, obrigatória).
-- Índice (Key): `idx_kind` na coluna `kind`.
-- Settings → Permissions: **Any → Read**; e `label:admin` com **Create, Update e Delete**. Deixe **Row security** desligada.
-
-Depois:
-1. Appwrite → Overview → **Plataformas → Web**: adicione `mapaculturalaquiraz.netlify.app` (sem isso o navegador é bloqueado e aparece "Failed to fetch").
-2. Cadastre-se no site, depois no Appwrite → Auth → seu usuário → **Labels** → adicione `admin`. Saia e entre de novo.
-
-*Alternativa com script:* quem preferir pode rodar `appwrite/setup.mjs` (precisa de Node.js e de uma chave de API temporária,
-que é segredo: nunca no GitHub nem em conversas).
-
-Endereço e IDs do projeto estão em `frontend/src/lib/appwrite.ts` (não são segredo) e podem ser trocados pelas
-variáveis `NEXT_PUBLIC_APPWRITE_ENDPOINT`, `NEXT_PUBLIC_APPWRITE_PROJECT_ID` e `NEXT_PUBLIC_APPWRITE_DATABASE_ID`.
+Depois disso, novos administradores são promovidos dentro do site (Administração, aba Equipe).
+Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa precisa confirmar o e-mail antes de entrar
+(o envio padrão do Supabase tem limite baixo de e-mails por hora).
 
 **Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
 (depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração
-precisa tirá-lo do mapa em `/admin`; a verificação de e-mail do Appwrite ainda não está exigida.
+precisa tirá-lo do mapa em `/admin`. No plano grátis o Supabase pausa o projeto após cerca de 7 dias sem uso
+(basta clicar em *Restore*).
 
 > O painel antigo (`/admin/*` ligado ao FastAPI) foi removido do site. A pasta `backend/` continua no repositório,
 > mas não é usada pelo site publicado.
