@@ -58,7 +58,7 @@ function popupHtml(it: Item) {
     ${it.contact ? `<div>${esc(it.contact)}</div>` : ""}
     ${safeUrl(it.site) ? `<a href="${esc(safeUrl(it.site)!)}" target="_blank" rel="noopener noreferrer">Site ou rede social ↗</a><br/>` : ""}
     ${it.entryId ? `<a href="/ver?id=${esc(it.entryId)}">Ver fotos e detalhes</a><br/>` : ""}
-    ${it.url ? `<a href="${esc(it.url)}" target="_blank" rel="noopener noreferrer">Abrir em ${esc(SOURCES[it.source].short)} ↗</a>` : ""}
+    ${it.url ? `<a href="/oficial?s=${esc(it.source)}&k=${esc(it.kind)}&id=${it.id}">Ver detalhes</a>` : ""}
   </div>`;
 }
 

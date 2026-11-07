@@ -1,4 +1,7 @@
 import { SUPABASE_URL, supabase } from "@/lib/supabase";
+import { youtubeId } from "@/lib/youtube";
+
+export { youtubeId };
 
 export const BUCKET = "mc-fotos";
 export const MAX_PHOTOS = 4;
@@ -9,28 +12,6 @@ const PUBLIC_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/`;
 /** Só aceita fotos que estão no nosso bucket (o texto vem de agentes: nunca confie em link qualquer). */
 export function photoUrls(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string" && x.startsWith(PUBLIC_PREFIX)).slice(0, MAX_PHOTOS) : [];
-}
-
-/** Extrai o código de 11 caracteres de um link do YouTube (watch, youtu.be, shorts, embed, live). */
-export function youtubeId(url: string): string | null {
-  const s = url.trim();
-  if (/^[\w-]{11}$/.test(s)) return s;
-  try {
-    const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`);
-    const host = u.hostname.replace(/^(www|m|music)\./, "");
-    let id: string | null = null;
-    if (host === "youtu.be") id = u.pathname.slice(1).split("/")[0];
-    else if (host === "youtube.com" || host === "youtube-nocookie.com") {
-      if (u.pathname === "/watch") id = u.searchParams.get("v");
-      else {
-        const m = u.pathname.match(/^\/(?:embed|shorts|live|v)\/([\w-]{11})/);
-        id = m ? m[1] : null;
-      }
-    }
-    return id && /^[\w-]{11}$/.test(id) ? id : null;
-  } catch {
-    return null;
-  }
 }
 
 /** Lista de links ou códigos -> só códigos válidos. */

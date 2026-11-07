@@ -7,6 +7,8 @@
  * da resposta e, se um campo extra for recusado, repete a consulta só com os campos básicos.
  */
 
+import { youtubeId } from "@/lib/youtube";
+
 export type Kind = "event" | "space" | "agent" | "project" | "opportunity";
 /** Tipos que os agentes podem cadastrar neste site (Projetos e Oportunidades vêm só dos mapas oficiais). */
 export type SubmitKind = "event" | "space" | "agent";
@@ -316,6 +318,110 @@ export async function fetchKind(source: OfficialKey, kind: Kind, opts: FetchOpts
     .slice(0, source === "estado" ? PAGE : undefined)
     .map((e) => (kind === "event" ? normEvent(source, e) : base(source, kind, e)));
   return { items, truncated };
+}
+
+/* ------------------------------ página de detalhes ------------------------------ */
+
+export type Detail = {
+  item: Item;
+  longDescription: string | null;
+  photos: string[];
+  videoIds: string[];
+  address: string | null;
+  email: string | null;
+  phone: string | null;
+  site: string | null;
+};
+
+/** Texto simples a partir do HTML que os mapas oficiais guardam na descrição (nada é injetado como HTML). */
+export function plainText(v: unknown): string | null {
+  if (typeof v !== "string") return null;
+  const t = v
+    .replace(/<\s*br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|div|li|h[1-6])>/gi, "\n")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;/g, "'")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return t || null;
+}
+
+/** Fotos que o mapa oficial devolve em chaves "@files:..." (objeto com url, ou lista deles). Só aceita o domínio oficial. */
+function filesOf(source: OfficialKey, e: Record<string, any>): string[] {
+  const out: string[] = [];
+  const site = SOURCES[source].site;
+  const add = (f: any) => {
+    const u = f && typeof f === "object" ? f.url : null;
+    if (typeof u === "string" && u.startsWith(`${site}/`) && !out.includes(u)) out.push(u);
+  };
+  for (const [k, v] of Object.entries(e)) {
+    if (!k.startsWith("@files")) continue;
+    if (Array.isArray(v)) v.forEach(add);
+    else add(v);
+  }
+  return out.slice(0, 8);
+}
+
+function videosOf(e: Record<string, any>): string[] {
+  const list = e?.metalists?.videos;
+  if (!Array.isArray(list)) return [];
+  const ids: string[] = [];
+  for (const m of list) {
+    const id = typeof m?.value === "string" ? youtubeId(m.value) : null;
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids.slice(0, 4);
+}
+
+/** Busca UM cadastro de um mapa oficial, com descrição completa, fotos e vídeos. Tenta versões mais simples se o servidor recusar algum campo. */
+export async function fetchDetail(source: OfficialKey, kind: Kind, id: number, signal?: AbortSignal): Promise<Detail | null> {
+  const root = `${SOURCES[source].proxy}/api/${kind}`;
+  const first = SELECT[kind][0];
+  const contact = kind === "event" ? "" : ",endereco";
+  const selects = [
+    `${first},longDescription,site,emailPublico,telefonePublico${contact},metalists`,
+    `${first},longDescription,site,emailPublico,telefonePublico${contact}`,
+    `${first},longDescription`,
+    ...SELECT[kind],
+  ];
+  const attempts = selects.map((select, i) => ({ select, files: i < 2 }));
+  attempts.splice(2, 0, { select: selects[1], files: false });
+
+  let row: Record<string, any> | null = null;
+  outer: for (const a of attempts) {
+    for (const ep of ["findOne", "find"]) {
+      try {
+        const url = `${root}/${ep}?${qs({ "@select": a.select, "@files": a.files ? "(avatar.avatarBig,gallery):url" : undefined, "@limit": ep === "find" ? 1 : undefined, id: `EQ(${id})` })}`;
+        const data = await getJSON(url, signal);
+        const r = Array.isArray(data) ? data[0] : data;
+        if (r && typeof r === "object" && (r as any).id != null) {
+          row = r as Record<string, any>;
+          break outer;
+        }
+      } catch {
+        if (signal?.aborted) throw new Error("cancelado");
+      }
+    }
+  }
+  if (!row) return null;
+
+  const item = kind === "event" ? normEvent(source, row) : base(source, kind, row);
+  const site = txt(row.site);
+  return {
+    item,
+    longDescription: plainText(row.longDescription),
+    photos: filesOf(source, row),
+    videoIds: videosOf(row),
+    address: txt(row.endereco),
+    email: txt(row.emailPublico),
+    phone: txt(row.telefonePublico),
+    site,
+  };
 }
 
 /* ------------------------------ apresentação ------------------------------ */

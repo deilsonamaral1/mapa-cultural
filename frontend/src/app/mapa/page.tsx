@@ -333,14 +333,11 @@ export default function MapaPage() {
                       )}
                       {it.url && (
                         <a
-                          href={it.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          href={`/oficial?s=${it.source}&k=${it.kind}&id=${it.id}`}
                           onClick={(e) => e.stopPropagation()}
-                          className="ml-auto flex items-center gap-1 font-semibold text-brand hover:underline"
+                          className="ml-auto font-semibold text-brand hover:underline"
                         >
-                          {listOnly ? "Ver detalhes e se inscrever" : "Ver no mapa oficial"}
-                          <Icon name="ext" className="h-3.5 w-3.5" />
+                          {listOnly ? "Ver detalhes e prazos" : "Ver detalhes"}
                         </a>
                       )}
                     </div>

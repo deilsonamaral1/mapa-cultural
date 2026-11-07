@@ -40,6 +40,8 @@ Depois disso, novos administradores são promovidos dentro do site (Administraç
 Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa precisa confirmar o e-mail antes de entrar
 (o envio padrão do Supabase tem limite baixo de e-mails por hora).
 
+**Dados dos mapas oficiais dentro do site.** Clicar em um evento, espaço, agente, projeto ou oportunidade do Aquiraz ou do Ceará abre a página `/oficial` aqui mesmo, com descrição, fotos e vídeos lidos ao vivo da API pública deles (sem copiar nada para o seu banco, então fica sempre atualizado). Só a inscrição em editais continua no mapa oficial, porque exige login lá.
+
 **Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
 (depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração
 precisa tirá-lo do mapa em `/admin`. No plano grátis o Supabase pausa o projeto após cerca de 7 dias sem uso

@@ -58,7 +58,7 @@ export default function UpcomingEvents() {
         return (
           <li key={e.key}>
             <a
-              href={`/mapa?tab=event&q=${encodeURIComponent(e.name)}`}
+              href={e.entryId ? `/ver?id=${e.entryId}` : `/oficial?s=${e.source}&k=event&id=${e.id}`}
               className="group flex h-full gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-lift"
             >
               <div className="grid h-16 w-16 shrink-0 place-content-center rounded-xl bg-sea text-center text-white">
