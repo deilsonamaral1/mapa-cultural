@@ -1,4 +1,4 @@
-import { APPWRITE, Query, databases } from "@/lib/appwrite";
+import { APPWRITE, Query, databases, rowToEntry } from "@/lib/appwrite";
 import type { FetchResult, Item, SubmitKind } from "@/lib/mapas";
 
 type Doc = Record<string, any>;
@@ -21,7 +21,8 @@ export async function fetchLocal(kind: SubmitKind, opts: { q?: string }): Promis
   const now = Date.now();
 
   const items: Item[] = [];
-  for (const d of r.documents as unknown as Doc[]) {
+  for (const row of r.documents) {
+    const d = rowToEntry(row) as unknown as Doc;
     const name = txt(d.name) ?? "(sem nome)";
     if (q && !name.toLowerCase().includes(q)) continue;
 

@@ -3,7 +3,7 @@
 import { Permission, Role } from "appwrite";
 import dynamic from "next/dynamic";
 import { useState } from "react";
-import { APPWRITE, ID, databases, errMsg, type EntryData, type Submission } from "@/lib/appwrite";
+import { APPWRITE, ID, databases, errMsg, packEntry, type EntryData, type Submission } from "@/lib/appwrite";
 import { KINDS, SUBMIT_KINDS, type SubmitKind } from "@/lib/mapas";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
@@ -98,13 +98,13 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
     try {
       if (initial) {
         // editar devolve o cadastro para aprovação
-        await databases.updateDocument(APPWRITE.database, APPWRITE.submissions, initial.$id, { ...data, status: "pending", note: null });
+        await databases.updateDocument(APPWRITE.database, APPWRITE.submissions, initial.$id, { data: packEntry({ ...data, ownerName }), status: "pending", note: null });
       } else {
         await databases.createDocument(
           APPWRITE.database,
           APPWRITE.submissions,
           ID.unique(),
-          { ...data, ownerId, ownerName, status: "pending" },
+          { data: packEntry({ ...data, ownerName }), ownerId, status: "pending" },
           [Permission.read(Role.user(ownerId)), Permission.update(Role.user(ownerId)), Permission.delete(Role.user(ownerId))],
         );
       }

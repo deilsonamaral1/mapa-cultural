@@ -1,4 +1,5 @@
-// Cria as coleções do Mapa Cultural no Appwrite. Pode rodar mais de uma vez (ignora o que já existe).
+// ALTERNATIVA ao passo a passo no painel do Appwrite (veja o README). Cria as tabelas do Mapa Cultural.
+// Pode rodar mais de uma vez (ignora o que já existe).
 //
 //   cd appwrite
 //   npm install
@@ -31,29 +32,8 @@ async function once(label, fn) {
   }
 }
 
-// Campos que descrevem um cadastro (iguais nas duas coleções).
-const str = (key, size, required = false, array = false) => ({ t: "str", key, size, required, array });
-const flt = (key) => ({ t: "flt", key });
-const dt = (key) => ({ t: "dt", key });
-const enm = (key, elements, required = true) => ({ t: "enm", key, elements, required });
-
-const COMMON = [
-  enm("kind", ["agent", "space", "event"]),
-  str("name", 255, true),
-  str("shortDescription", 400, true),
-  str("longDescription", 5000),
-  str("type", 100),
-  str("areas", 100, false, true),
-  flt("lat"),
-  flt("lng"),
-  str("address", 500),
-  str("city", 120),
-  str("place", 255), // eventos: nome do espaço
-  dt("startsAt"),
-  dt("endsAt"),
-  str("site", 500),
-  str("contact", 255),
-];
+// Poucas colunas: os campos do cadastro ficam juntos, em JSON, na coluna `data`.
+const str = (key, size, required = false) => ({ t: "str", key, size, required });
 
 const COLLECTIONS = [
   {
@@ -68,13 +48,7 @@ const COLLECTIONS = [
       Permission.delete(Role.label("admin")),
     ],
     documentSecurity: true,
-    attributes: [
-      ...COMMON,
-      str("ownerId", 64, true),
-      str("ownerName", 255),
-      enm("status", ["pending", "approved", "rejected"]),
-      str("note", 500),
-    ],
+    attributes: [str("ownerId", 64, true), str("status", 16, true), str("note", 500), str("data", 10000, true)],
     indexes: [
       { key: "idx_owner", attributes: ["ownerId"] },
       { key: "idx_status", attributes: ["status"] },
@@ -91,17 +65,14 @@ const COLLECTIONS = [
       Permission.delete(Role.label("admin")),
     ],
     documentSecurity: false,
-    attributes: [...COMMON, str("submissionId", 64)],
+    attributes: [str("kind", 16, true), str("data", 10000, true)],
     indexes: [{ key: "idx_kind", attributes: ["kind"] }],
   },
 ];
 
 async function addAttribute(c, a) {
   const label = `${c.id}.${a.key}`;
-  if (a.t === "str") return once(label, () => db.createStringAttribute(databaseId, c.id, a.key, a.size, a.required, undefined, a.array));
-  if (a.t === "flt") return once(label, () => db.createFloatAttribute(databaseId, c.id, a.key, false));
-  if (a.t === "dt") return once(label, () => db.createDatetimeAttribute(databaseId, c.id, a.key, false));
-  if (a.t === "enm") return once(label, () => db.createEnumAttribute(databaseId, c.id, a.key, a.elements, a.required));
+  return once(label, () => db.createStringAttribute(databaseId, c.id, a.key, a.size, a.required));
 }
 
 async function waitAvailable(collectionId) {

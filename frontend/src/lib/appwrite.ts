@@ -7,8 +7,10 @@ export const APPWRITE = {
   endpoint: process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ?? "https://nyc.cloud.appwrite.io/v1",
   project: process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID ?? "6aed2b790023e763ceff",
   database: process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ?? "6aed2d2f003472943abd",
-  submissions: "submissions", // o que os agentes enviam (pendente / aprovado / rejeitado)
-  published: "published", // o que o público vê (só o administrador grava)
+  // IDs das tabelas. Se no Appwrite elas tiverem outro ID (veja em Settings da tabela), troque aqui
+  // ou use as variáveis NEXT_PUBLIC_APPWRITE_SUBMISSIONS_ID e NEXT_PUBLIC_APPWRITE_PUBLISHED_ID.
+  submissions: process.env.NEXT_PUBLIC_APPWRITE_SUBMISSIONS_ID ?? "submissions", // o que os agentes enviam
+  published: process.env.NEXT_PUBLIC_APPWRITE_PUBLISHED_ID ?? "published", // o que o público vê (só o admin grava)
 };
 
 const client = new Client().setEndpoint(APPWRITE.endpoint).setProject(APPWRITE.project);
@@ -56,6 +58,44 @@ export function publicData(s: EntryData & Record<string, unknown>): Record<strin
   const out: Record<string, unknown> = {};
   for (const k of PUBLIC_FIELDS) out[k] = s[k] ?? (k === "areas" ? [] : null);
   return out;
+}
+
+/*
+ * Como os dados ficam no Appwrite (poucas colunas, fáceis de criar à mão no painel):
+ *   submissions: ownerId, status, note + data (JSON com todos os campos do cadastro)
+ *   published:   kind + data (JSON com os campos públicos)
+ */
+function parseJson(json: unknown): Record<string, any> {
+  try {
+    const v = typeof json === "string" ? JSON.parse(json) : json;
+    return v && typeof v === "object" ? (v as Record<string, any>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export const packEntry = (e: object) => JSON.stringify(e);
+
+/** Linha da tabela `submissions` -> cadastro completo. */
+export function rowToSubmission(row: any): Submission {
+  const d = parseJson(row.data);
+  return {
+    areas: [],
+    ...d,
+    kind: d.kind ?? "agent",
+    name: d.name ?? "(sem nome)",
+    shortDescription: d.shortDescription ?? "",
+    $id: row.$id,
+    $createdAt: row.$createdAt,
+    ownerId: row.ownerId,
+    status: row.status,
+    note: row.note ?? null,
+  } as Submission;
+}
+
+/** Linha da tabela `published` -> cadastro público. */
+export function rowToEntry(row: any): EntryData & { $id: string } {
+  return { areas: [], ...parseJson(row.data), $id: row.$id } as EntryData & { $id: string };
 }
 
 /** Mensagem em português para os erros do Appwrite. */

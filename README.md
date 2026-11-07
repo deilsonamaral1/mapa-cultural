@@ -28,16 +28,27 @@ no Appwrite. Entre em `/entrar`: o cabeçalho passa a mostrar o botão **Adminis
 que leva a `/admin`. O rodapé do site também tem o link "Administração da equipe". Para dar acesso a outra pessoa,
 repita o passo 3 abaixo na conta dela.
 
-**Configuração (uma vez):**
-1. No Appwrite, crie uma **chave de API** com escopo de banco de dados (leitura e escrita) e rode, no seu computador:
-   ```bash
-   cd appwrite && npm install
-   APPWRITE_API_KEY=sua_chave node setup.mjs     # PowerShell: $env:APPWRITE_API_KEY="sua_chave"; node setup.mjs
-   ```
-   A chave é segredo: nunca coloque no GitHub, no Netlify ou em conversas. Apague-a depois de usar.
-2. Appwrite → Overview → **Plataformas → Web**: adicione `mapaculturalaquiraz.netlify.app` (sem isso o navegador
-   é bloqueado e aparece "Failed to fetch").
-3. Cadastre-se no site, depois no Appwrite → Auth → seu usuário → **Labels** → adicione `admin`. Saia e entre de novo.
+**Configuração pelo painel do Appwrite (sem instalar nada).** Em Databases, abra o banco e crie **duas tabelas**.
+O **Table ID** precisa ser exatamente `submissions` e `published` (na janela de criar a tabela, clique no ícone de
+lápis ao lado do nome para digitar o ID). Se as tabelas já existem com outro ID, anote o ID de cada uma (Settings da
+tabela) e use as variáveis `NEXT_PUBLIC_APPWRITE_SUBMISSIONS_ID` e `NEXT_PUBLIC_APPWRITE_PUBLISHED_ID` no Netlify.
+
+*Tabela `submissions`*
+- Colunas (todas do tipo **String**): `ownerId` (tamanho 64, obrigatória), `status` (16, obrigatória), `note` (500, opcional) e `data` (tamanho 10000, obrigatória; pode ser o tipo **Text**).
+- Índices (tipo Key): `idx_owner` na coluna `ownerId` e `idx_status` na coluna `status`.
+- Settings → Permissions: adicione **Users → Create**; e, como função personalizada `label:admin`, marque **Read, Update e Delete**. Ligue **Row security**.
+
+*Tabela `published`*
+- Colunas (String): `kind` (16, obrigatória) e `data` (10000, obrigatória).
+- Índice (Key): `idx_kind` na coluna `kind`.
+- Settings → Permissions: **Any → Read**; e `label:admin` com **Create, Update e Delete**. Deixe **Row security** desligada.
+
+Depois:
+1. Appwrite → Overview → **Plataformas → Web**: adicione `mapaculturalaquiraz.netlify.app` (sem isso o navegador é bloqueado e aparece "Failed to fetch").
+2. Cadastre-se no site, depois no Appwrite → Auth → seu usuário → **Labels** → adicione `admin`. Saia e entre de novo.
+
+*Alternativa com script:* quem preferir pode rodar `appwrite/setup.mjs` (precisa de Node.js e de uma chave de API temporária,
+que é segredo: nunca no GitHub nem em conversas).
 
 Endereço e IDs do projeto estão em `frontend/src/lib/appwrite.ts` (não são segredo) e podem ser trocados pelas
 variáveis `NEXT_PUBLIC_APPWRITE_ENDPOINT`, `NEXT_PUBLIC_APPWRITE_PROJECT_ID` e `NEXT_PUBLIC_APPWRITE_DATABASE_ID`.

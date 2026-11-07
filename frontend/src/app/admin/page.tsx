@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 import SiteHeader from "@/components/SiteHeader";
-import { APPWRITE, Query, databases, errMsg, publicData, type EntryStatus, type Submission } from "@/lib/appwrite";
+import { APPWRITE, Query, databases, errMsg, packEntry, publicData, rowToSubmission, type EntryStatus, type Submission } from "@/lib/appwrite";
 import { KINDS, fmtDate } from "@/lib/mapas";
 import { useUser } from "@/lib/useUser";
 import { Permission, Role } from "appwrite";
@@ -34,7 +34,7 @@ export default function AdminPage() {
           databases.listDocuments(APPWRITE.database, APPWRITE.submissions, [Query.equal("status", s), Query.limit(1)]),
         ),
       ]);
-      setList(r.documents as unknown as Submission[]);
+      setList(r.documents.map(rowToSubmission));
       setCounts({ pending: p.total, approved: a.total, rejected: j.total });
       setError("");
     } catch (e) {
@@ -53,12 +53,12 @@ export default function AdminPage() {
     setWorking(s.$id);
     setError("");
     try {
-      const data = publicData(s as never);
+      const row = { kind: s.kind, data: packEntry(publicData(s as never)) };
       try {
-        await databases.updateDocument(APPWRITE.database, APPWRITE.published, s.$id, { ...data, submissionId: s.$id });
+        await databases.updateDocument(APPWRITE.database, APPWRITE.published, s.$id, row);
       } catch (e) {
         if ((e as { code?: number }).code !== 404) throw e;
-        await databases.createDocument(APPWRITE.database, APPWRITE.published, s.$id, { ...data, submissionId: s.$id });
+        await databases.createDocument(APPWRITE.database, APPWRITE.published, s.$id, row);
       }
       await databases.updateDocument(APPWRITE.database, APPWRITE.submissions, s.$id, { status: "approved", note: null });
       await load();

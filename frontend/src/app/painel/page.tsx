@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import EntryForm from "@/components/EntryForm";
 import SiteHeader from "@/components/SiteHeader";
-import { APPWRITE, Query, databases, errMsg, type EntryStatus, type Submission } from "@/lib/appwrite";
+import { APPWRITE, Query, databases, errMsg, rowToSubmission, type EntryStatus, type Submission } from "@/lib/appwrite";
 import { KINDS } from "@/lib/mapas";
 import { useUser } from "@/lib/useUser";
 
@@ -30,7 +30,7 @@ export default function PainelPage() {
         Query.orderDesc("$createdAt"),
         Query.limit(100),
       ]);
-      setList(r.documents as unknown as Submission[]);
+      setList(r.documents.map(rowToSubmission));
       setError("");
     } catch (e) {
       setError(errMsg(e));
