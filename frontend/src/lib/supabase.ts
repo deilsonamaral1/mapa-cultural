@@ -3,8 +3,8 @@ import type { SubmitKind } from "@/lib/mapas";
 
 // A URL e a chave "anon/public" NÃO são segredo (o navegador precisa delas); quem protege os dados são as
 // regras do banco (supabase/setup.sql). A chave "service_role" nunca entra neste site.
-const URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://xzapghpkyrxbyhbrlppi.supabase.co";
+const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_Ht4Nn35DbazdDsQ1TLOcAQ_RdOQuPRu";
 
 export const supabaseConfigured = Boolean(URL && KEY);
 
