@@ -3,7 +3,8 @@
 @tailwind utilities;
 
 @layer base {
-  html { scroll-behavior: smooth; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body { overflow-x: hidden; }
   body { @apply bg-cal font-sans text-ink antialiased; }
   h1, h2, h3, h4 { @apply font-display tracking-tight; }
 
@@ -15,6 +16,13 @@
   }
   input[type="checkbox"] { @apply w-auto; }
   label { @apply block text-sm font-medium text-slate-700; }
+
+  /* celular: 16 px nos campos evita o zoom automático do iPhone ao tocar; botões e links de ação ficam fáceis de tocar */
+  @media (max-width: 640px) {
+    input, textarea, select { font-size: 16px; }
+    input[type="checkbox"], input[type="radio"] { width: 1.25rem; height: 1.25rem; padding: 0; }
+    button { min-height: 40px; }
+  }
 
   /* foco visível em tudo que se clica com o teclado */
   a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 3px solid #f2a516; outline-offset: 2px; border-radius: 8px; }

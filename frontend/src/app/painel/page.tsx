@@ -62,7 +62,7 @@ export default function PainelPage() {
         {!loading && !user && (
           <div className="rounded-lg border bg-white p-6 text-center">
             <p className="mb-3">Entre na sua conta para ver e criar cadastros.</p>
-            <Link href="/entrar" className="rounded bg-brand px-5 py-2 font-medium text-white">Entrar</Link>
+            <Link href="/entrar" className="rounded-full bg-sea px-5 py-2.5 font-semibold text-white">Entrar</Link>
           </div>
         )}
 
@@ -87,7 +87,7 @@ export default function PainelPage() {
                 )}
               </div>
               {!editing && (
-                <button onClick={() => setEditing("new")} className="rounded bg-brand px-5 py-2 font-medium text-white hover:bg-brand-dark">+ Novo cadastro</button>
+                <button onClick={() => setEditing("new")} className="rounded-full bg-sea px-5 py-2.5 font-semibold text-white hover:bg-brand-dark">+ Novo cadastro</button>
               )}
             </div>
 
@@ -109,7 +109,7 @@ export default function PainelPage() {
 
             <ul className="space-y-3">
               {list.map((s) => (
-                <li key={s.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                <li key={s.id} className="rounded-xl border bg-white p-4 shadow-sm">
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-xs font-semibold" style={{ color: KINDS[s.kind].color }}>{KINDS[s.kind].label}</div>

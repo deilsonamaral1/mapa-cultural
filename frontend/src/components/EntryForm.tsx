@@ -252,8 +252,8 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
 
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button disabled={busy} className="rounded bg-brand px-5 py-2 font-medium text-white disabled:opacity-50">{busy ? "Enviando…" : initial ? "Salvar e reenviar" : "Enviar para aprovação"}</button>
-        <button type="button" onClick={onCancel} className="rounded border px-5 py-2 text-gray-700">Cancelar</button>
+        <button disabled={busy} className="rounded-full bg-sea px-6 py-2.5 font-semibold text-white disabled:opacity-50">{busy ? "Enviando…" : initial ? "Salvar e reenviar" : "Enviar para aprovação"}</button>
+        <button type="button" onClick={onCancel} className="rounded-full border px-6 py-2.5 text-gray-700">Cancelar</button>
       </div>
     </form>
   );

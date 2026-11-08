@@ -44,6 +44,8 @@ Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa 
 
 **Blog e podcast.** Rode também o `supabase/blog.sql` no SQL Editor. Agentes enviam textos e episódios pelo `/painel` (seção Blog e podcast) e a equipe aprova em Administração → Blog e podcast; administradores publicam direto. O áudio pode ser arquivo (até 50 MB, limite do plano grátis) ou link do Spotify, YouTube ou SoundCloud. Páginas: `/blog`, `/podcast` e `/leitura?id=…`.
 
+**Formulários de campo.** Rode o `supabase/campo.sql`. Em Administração → Formulários de campo, o administrador cria perguntas (resposta curta, longa, escolha ou anexos de foto, áudio e vídeo), copia o link ou manda por WhatsApp e recebe as respostas ali mesmo. O agente abre `/campo?f=…` sem criar conta, responde e toca em *Salvar e enviar*; o texto fica guardado no aparelho até enviar. Os anexos vão para um espaço **privado** (`mc-campo`, 50 MB por arquivo) que só o administrador abre. Encerrar o formulário bloqueia novos envios.
+
 **Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
 (depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração
 precisa tirá-lo do mapa em `/admin`. No plano grátis o Supabase pausa o projeto após cerca de 7 dias sem uso

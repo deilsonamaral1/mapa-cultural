@@ -47,7 +47,7 @@ export default function MeusPosts({ userId, userName, isAdmin }: { userId: strin
           <h2 className="font-display text-xl font-bold">Blog e podcast</h2>
           <p className="text-sm text-slate-600">Publique textos e episódios de áudio. {isAdmin ? "Os seus saem direto no ar." : "A equipe revisa antes de publicar."}</p>
         </div>
-        {!editing && <button onClick={() => setEditing("new")} className="rounded bg-sea px-5 py-2 font-medium text-white hover:bg-sea-deep">+ Nova publicação</button>}
+        {!editing && <button onClick={() => setEditing("new")} className="rounded-full bg-sea px-5 py-2.5 font-semibold text-white hover:bg-sea-deep">+ Nova publicação</button>}
       </div>
 
       {editing && (
@@ -61,7 +61,7 @@ export default function MeusPosts({ userId, userName, isAdmin }: { userId: strin
 
       <ul className="space-y-3">
         {list.map((p) => (
-          <li key={p.id} className="rounded-lg border bg-white p-4 shadow-sm">
+          <li key={p.id} className="rounded-xl border bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="text-xs font-semibold" style={{ color: POST_KINDS[p.kind].color }}>{POST_KINDS[p.kind].label}</div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Logo } from "@/components/SiteHeader";
 import { errMsg, supabase } from "@/lib/supabase";
 import { SOURCES } from "@/lib/mapas";
 
@@ -39,9 +40,10 @@ export default function CadastroPage() {
 
   if (confirmar)
     return (
-      <main className="grid min-h-screen place-items-center bg-brand-soft p-4">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-b from-sea-deep to-sea px-4 py-8">
+      <Logo light />
         <div className="w-full max-w-sm space-y-3 rounded-lg bg-white p-6 text-center shadow">
-          <h1 className="text-xl font-semibold text-brand-dark">Confirme seu e-mail</h1>
+          <h1 className="font-display text-2xl font-bold text-sea">Confirme seu e-mail</h1>
           <p className="text-sm text-gray-600">Enviamos um link para <strong>{email}</strong>. Clique nele e depois entre com a sua senha.</p>
           <Link href="/entrar" className="inline-block rounded bg-brand px-5 py-2 text-white">Ir para o login</Link>
         </div>
@@ -50,8 +52,8 @@ export default function CadastroPage() {
 
   return (
     <main className="grid min-h-screen place-items-center bg-brand-soft p-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-lg bg-white p-6 shadow">
-        <h1 className="text-xl font-semibold text-brand-dark">Cadastre-se como agente cultural</h1>
+      <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-6 shadow-lift">
+        <h1 className="font-display text-2xl font-bold text-sea">Cadastre-se como agente cultural</h1>
         <p className="text-sm text-gray-600">
           Crie sua conta, cadastre seu perfil, espaço ou evento e acompanhe o status. Tudo passa por aprovação da equipe antes de aparecer no mapa.
         </p>
@@ -63,7 +65,7 @@ export default function CadastroPage() {
           <label>Site<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
         </div>
         {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
-        <button disabled={busy} className="w-full rounded bg-brand px-4 py-2 text-white disabled:opacity-50">
+        <button disabled={busy} className="w-full rounded-full bg-sea px-4 py-3 font-semibold text-white hover:bg-sea-deep disabled:opacity-50">
           {busy ? "Criando…" : "Criar cadastro"}
         </button>
         <p className="text-center text-sm text-gray-600">

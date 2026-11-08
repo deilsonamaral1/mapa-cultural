@@ -27,7 +27,7 @@ export function youtubeIds(v: unknown): string[] {
 }
 
 /** Reduz a foto no próprio navegador (lado maior 1600 px, JPEG) para economizar espaço e dados. */
-async function shrink(file: File): Promise<Blob> {
+export async function shrink(file: File): Promise<Blob> {
   const bmp = await createImageBitmap(file);
   const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
   const c = document.createElement("canvas");

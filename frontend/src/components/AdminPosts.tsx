@@ -66,7 +66,7 @@ export default function AdminPosts() {
 
       <ul className="space-y-3">
         {list.map((p) => (
-          <li key={p.id} className="rounded-lg border bg-white p-4 shadow-sm">
+          <li key={p.id} className="rounded-xl border bg-white p-4 shadow-sm">
             <div className="text-xs font-semibold" style={{ color: POST_KINDS[p.kind].color }}>{POST_KINDS[p.kind].label}</div>
             <h2 className="text-lg font-semibold leading-snug">{p.title}</h2>
             <p className="text-xs text-gray-500">Por {p.authorName || "—"} em {new Date(p.createdAt).toLocaleDateString("pt-BR")}</p>
@@ -79,12 +79,12 @@ export default function AdminPosts() {
             {p.body && <details className="mt-2 text-sm"><summary className="cursor-pointer font-medium text-brand">Ler o texto</summary><div className="mt-2 whitespace-pre-line text-gray-700">{p.body}</div></details>}
             {p.status === "rejected" && p.note && <p className="mt-2 rounded bg-red-50 p-2 text-sm text-red-700"><strong>Motivo:</strong> {p.note}</p>}
             <div className="mt-3 flex flex-wrap gap-2">
-              {p.status !== "published" && <button disabled={working === p.id} onClick={() => setStatus(p, "published")} className="rounded bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">Aprovar e publicar</button>}
+              {p.status !== "published" && <button disabled={working === p.id} onClick={() => setStatus(p, "published")} className="rounded-full bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">Aprovar e publicar</button>}
               {p.status === "published" && <>
-                <a href={`/leitura?id=${p.id}`} className="rounded border px-4 py-1.5 text-sm hover:bg-gray-50">Ver no site</a>
-                <button disabled={working === p.id} onClick={() => setStatus(p, "pending")} className="rounded border px-4 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50">Tirar do ar</button>
+                <a href={`/leitura?id=${p.id}`} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50">Ver no site</a>
+                <button disabled={working === p.id} onClick={() => setStatus(p, "pending")} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50">Tirar do ar</button>
               </>}
-              {p.status !== "rejected" && <button disabled={working === p.id} onClick={() => reject(p)} className="rounded border border-red-300 px-4 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50">Rejeitar</button>}
+              {p.status !== "rejected" && <button disabled={working === p.id} onClick={() => reject(p)} className="rounded-full border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50">Rejeitar</button>}
             </div>
           </li>
         ))}

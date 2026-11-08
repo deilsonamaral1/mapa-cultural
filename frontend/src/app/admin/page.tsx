@@ -8,6 +8,7 @@ import { T, errMsg, publicData, rowToSubmission, supabase, type EntryStatus, typ
 import { KINDS, fmtDate } from "@/lib/mapas";
 import { useUser } from "@/lib/useUser";
 import AdminPosts from "@/components/AdminPosts";
+import CampoAdmin from "@/components/CampoAdmin";
 import Equipe from "@/components/Equipe";
 import Media from "@/components/Media";
 import { photoUrls } from "@/lib/media";
@@ -26,7 +27,7 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"aprovacoes" | "textos" | "equipe">("aprovacoes");
+  const [view, setView] = useState<"aprovacoes" | "textos" | "campo" | "equipe">("aprovacoes");
 
   const load = useCallback(async () => {
     if (!isAdmin) return;
@@ -123,10 +124,10 @@ export default function AdminPage() {
         {isAdmin && (
           <>
             <h1 className="text-2xl font-bold">Administração</h1>
-            <div className="flex gap-2 border-b border-slate-200" role="tablist" aria-label="Seções">
-              {([["aprovacoes", "Cadastros"], ["textos", "Blog e podcast"], ["equipe", "Equipe"]] as const).map(([k, l]) => (
+            <div className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto border-b border-slate-200 px-4" role="tablist" aria-label="Seções">
+              {([["aprovacoes", "Cadastros"], ["textos", "Blog e podcast"], ["campo", "Formulários de campo"], ["equipe", "Equipe"]] as const).map(([k, l]) => (
                 <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
-                  className={`-mb-px border-b-2 px-4 py-2 text-sm font-semibold ${view === k ? "border-sea text-sea" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+                  className={`-mb-px shrink-0 border-b-2 px-4 py-3 text-sm font-semibold ${view === k ? "border-sea text-sea" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
                   {l}
                 </button>
               ))}
@@ -134,6 +135,7 @@ export default function AdminPage() {
 
             {view === "equipe" && <Equipe meId={user!.id} />}
             {view === "textos" && <AdminPosts />}
+            {view === "campo" && <CampoAdmin userId={user!.id} />}
 
             {view === "aprovacoes" && (<>
             <div className="flex gap-1 rounded-lg bg-brand-soft p-1" role="tablist">
@@ -151,7 +153,7 @@ export default function AdminPage() {
 
             <ul className="space-y-3">
               {list.map((s) => (
-                <li key={s.id} className="rounded-lg border bg-white p-4 shadow-sm">
+                <li key={s.id} className="rounded-xl border bg-white p-4 shadow-sm">
                   <div className="text-xs font-semibold" style={{ color: KINDS[s.kind].color }}>{KINDS[s.kind].label}</div>
                   <h2 className="text-lg font-semibold leading-snug">{s.name}</h2>
                   <p className="text-xs text-gray-500">Enviado por {s.ownerName || "—"} em {new Date(s.createdAt).toLocaleDateString("pt-BR")}</p>
@@ -174,18 +176,18 @@ export default function AdminPage() {
 
                   <div className="mt-3 flex flex-wrap gap-2">
                     {s.status !== "approved" && (
-                      <button disabled={working === s.id} onClick={() => approve(s)} className="rounded bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
+                      <button disabled={working === s.id} onClick={() => approve(s)} className="rounded-full bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
                         {working === s.id ? "Publicando…" : "Aprovar e publicar"}
                       </button>
                     )}
                     {s.status === "approved" && (
                       <>
-                        <button disabled={working === s.id} onClick={() => approve(s)} className="rounded border px-4 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50" title="Atualiza o que está no mapa com o texto atual do cadastro">Republicar</button>
-                        <button disabled={working === s.id} onClick={() => unpublish(s, "pending", null)} className="rounded border px-4 py-1.5 text-sm hover:bg-gray-50 disabled:opacity-50">Tirar do mapa</button>
+                        <button disabled={working === s.id} onClick={() => approve(s)} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50" title="Atualiza o que está no mapa com o texto atual do cadastro">Republicar</button>
+                        <button disabled={working === s.id} onClick={() => unpublish(s, "pending", null)} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50">Tirar do mapa</button>
                       </>
                     )}
                     {s.status !== "rejected" && (
-                      <button disabled={working === s.id} onClick={() => reject(s)} className="rounded border border-red-300 px-4 py-1.5 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50">Rejeitar</button>
+                      <button disabled={working === s.id} onClick={() => reject(s)} className="rounded-full border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50">Rejeitar</button>
                     )}
                   </div>
                 </li>
