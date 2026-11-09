@@ -101,6 +101,7 @@ export function errMsg(e: unknown): string {
   if (/password/i.test(m) && /(least|weak|short)/i.test(m)) return "A senha deve ter pelo menos 8 caracteres.";
   if (x?.code === "42P01" || x?.code === "PGRST205" || /could not find the table|does not exist/i.test(m))
     return /mc_posts/.test(m) ? "O blog e o podcast ainda não foram criados no Supabase. Rode o arquivo supabase/blog.sql no SQL Editor."
+      : /mc_formularios|mc_respostas|mc_form_publico/.test(m) ? "Os formulários de campo ainda não foram criados no Supabase. Rode o arquivo supabase/campo.sql no SQL Editor."
       : "Falta criar as tabelas no Supabase. Rode o arquivo supabase/setup.sql no SQL Editor.";
   if (x?.code === "42501" || /row-level security|permission denied/i.test(m)) return "Sem permissão para esta ação com a sua conta.";
   if (x?.code === "P0001") return m; // mensagens escritas em português nas funções do banco
