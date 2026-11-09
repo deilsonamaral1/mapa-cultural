@@ -72,6 +72,12 @@ export default function SiteHeader() {
         <nav aria-label="Categorias" className="hidden items-center gap-1 lg:flex">{nav}</nav>
 
         <div className="flex items-center gap-1.5 text-sm font-medium">
+          <Link href="/busca" aria-label="Buscar" className="grid h-9 w-9 place-items-center rounded-full text-slate-600 hover:bg-slate-100">
+            <Icon name="search" className="h-5 w-5" />
+          </Link>
+          <Link href="/favoritos" aria-label="Salvos" className="hidden h-9 w-9 place-items-center rounded-full text-slate-600 hover:bg-slate-100 sm:grid">
+            <Icon name="heart" className="h-5 w-5" />
+          </Link>
           {!loading && user && (
             <>
               {isAdmin && (

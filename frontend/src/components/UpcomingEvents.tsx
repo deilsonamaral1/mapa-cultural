@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 import { fetchLocal } from "@/lib/local";
-import { fetchKind, type Item } from "@/lib/mapas";
+import { fetchKind, itemHref, type Item } from "@/lib/mapas";
 
 const month = (d: Date) => d.toLocaleString("pt-BR", { month: "short" }).replace(".", "");
 const hour = (d: Date) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -58,7 +58,7 @@ export default function UpcomingEvents() {
         return (
           <li key={e.key}>
             <a
-              href={e.entryId ? `/ver?id=${e.entryId}` : `/oficial?s=${e.source}&k=event&id=${e.id}`}
+              href={itemHref(e)}
               className="group flex h-full gap-4 rounded-2xl border border-slate-200 bg-white p-4 transition hover:-translate-y-0.5 hover:shadow-lift"
             >
               <div className="grid h-16 w-16 shrink-0 place-content-center rounded-xl bg-sea text-center text-white">

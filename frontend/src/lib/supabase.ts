@@ -7,6 +7,7 @@ const URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://xzapghpkyrxbyhbrlpp
 const KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_Ht4Nn35DbazdDsQ1TLOcAQ_RdOQuPRu";
 
 export const SUPABASE_URL = URL;
+export const SUPABASE_KEY = KEY;
 export const supabaseConfigured = Boolean(URL && KEY);
 
 // Valores de reserva só para o site abrir (e o build passar) antes de você configurar.

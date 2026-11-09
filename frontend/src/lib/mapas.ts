@@ -320,6 +320,11 @@ export async function fetchKind(source: OfficialKey, kind: Kind, opts: FetchOpts
   return { items, truncated };
 }
 
+/** Endereço da página de detalhes dentro deste site (cadastros do site ou dos mapas oficiais). */
+export function itemHref(it: Pick<Item, "source" | "kind" | "id" | "entryId">): string {
+  return it.entryId ? `/ver/${it.entryId}` : `/oficial/${it.source}/${it.kind}/${it.id}`;
+}
+
 /* ------------------------------ página de detalhes ------------------------------ */
 
 export type Detail = {

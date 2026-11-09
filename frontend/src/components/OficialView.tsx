@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 import Media from "@/components/Media";
+import ShareBar from "@/components/ShareBar";
 import SiteHeader from "@/components/SiteHeader";
 import { KINDS, SOURCES, fetchDetail, fmtDate, type Detail, type Kind, type OfficialKey } from "@/lib/mapas";
 
@@ -14,18 +15,14 @@ const safeUrl = (v?: string | null) => {
 };
 
 /** Cadastro vindo de um Mapa Cultural oficial, mostrado dentro deste site (dados lidos ao vivo). */
-export default function OficialPage() {
+export default function OficialView({ s: source0, k: kind0, id: id0 }: { s: OfficialKey; k: Kind; id: number }) {
   const [d, setD] = useState<Detail | null>(null);
-  const [kind, setKind] = useState<Kind>("event");
-  const [source, setSource] = useState<OfficialKey>("aquiraz");
+  const [kind, setKind] = useState<Kind>(kind0);
+  const [source, setSource] = useState<OfficialKey>(source0);
   const [state, setState] = useState<"loading" | "ok" | "missing" | "error">("loading");
 
   useEffect(() => {
-    const q = new URLSearchParams(window.location.search);
-    const s = q.get("s") as OfficialKey | null;
-    const k = q.get("k") as Kind | null;
-    const id = Number(q.get("id"));
-    if (!s || !(s in SOURCES) || s === ("local" as string) || !k || !(k in KINDS) || !Number.isInteger(id) || id <= 0) return setState("missing");
+    const s = source0, k = kind0, id = id0;
     setSource(s);
     setKind(k);
     fetchDetail(s, k, id)
@@ -34,7 +31,7 @@ export default function OficialPage() {
         setState(r ? "ok" : "missing");
       })
       .catch(() => setState("error"));
-  }, []);
+  }, [source0, kind0, id0]);
 
   const k = KINDS[kind];
   const it = d?.item;
@@ -73,6 +70,9 @@ export default function OficialPage() {
                 </p>
               )}
             </header>
+
+            <ShareBar title={it.name} kind={kind}
+              evento={kind === "event" && it.startsAt ? { title: it.name, start: it.startsAt, end: it.endsAt, place: where, details: it.description } : null} />
 
             <Media photos={d.photos} videos={d.videoIds} />
 

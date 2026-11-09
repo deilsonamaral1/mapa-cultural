@@ -81,7 +81,7 @@ export default function AdminPosts() {
             <div className="mt-3 flex flex-wrap gap-2">
               {p.status !== "published" && <button disabled={working === p.id} onClick={() => setStatus(p, "published")} className="rounded-full bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">Aprovar e publicar</button>}
               {p.status === "published" && <>
-                <a href={`/leitura?id=${p.id}`} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50">Ver no site</a>
+                <a href={`/leitura/${p.id}`} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50">Ver no site</a>
                 <button disabled={working === p.id} onClick={() => setStatus(p, "pending")} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50">Tirar do ar</button>
               </>}
               {p.status !== "rejected" && <button disabled={working === p.id} onClick={() => reject(p)} className="rounded-full border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50">Rejeitar</button>}

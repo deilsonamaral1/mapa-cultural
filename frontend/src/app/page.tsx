@@ -46,7 +46,7 @@ export default function Home() {
             Eventos, espaços, agentes, projetos e oportunidades da cidade e do Ceará, reunidos em um só mapa.
           </p>
 
-          <form action="/mapa" method="get" role="search" className="mt-8 flex max-w-2xl flex-col gap-2 rounded-2xl bg-white p-2 shadow-lift sm:flex-row">
+          <form action="/busca" method="get" role="search" className="mt-8 flex max-w-2xl flex-col gap-2 rounded-2xl bg-white p-2 shadow-lift sm:flex-row">
             <div className="relative flex-1">
               <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
               <input
@@ -56,11 +56,6 @@ export default function Home() {
                 className="!border-0 !bg-transparent !py-3.5 !pl-11 !text-base text-ink !shadow-none !ring-0"
               />
             </div>
-            <select name="tab" aria-label="Buscar em" defaultValue="event" className="!w-full !border-0 !bg-slate-100 !py-3.5 !pr-8 text-ink sm:!w-44">
-              {KIND_ORDER.map((k) => (
-                <option key={k} value={k}>{KINDS[k].plural}</option>
-              ))}
-            </select>
             <button className="rounded-xl bg-sun px-7 py-3.5 font-semibold text-ink hover:bg-[#ffb62e]">Buscar</button>
           </form>
 

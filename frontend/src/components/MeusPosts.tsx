@@ -72,7 +72,7 @@ export default function MeusPosts({ userId, userName, isAdmin }: { userId: strin
             {p.status === "rejected" && p.note && <p className="mt-2 rounded bg-red-50 p-2 text-sm text-red-700"><strong>Motivo:</strong> {p.note}</p>}
             <div className="mt-3 flex gap-3 text-sm">
               {(isAdmin || p.status !== "published") && <button onClick={() => setEditing(p)} className="font-medium text-brand-dark hover:underline">Editar</button>}
-              {p.status === "published" && <a href={`/leitura?id=${p.id}`} className="font-medium text-brand-dark hover:underline">Ver no site</a>}
+              {p.status === "published" && <a href={`/leitura/${p.id}`} className="font-medium text-brand-dark hover:underline">Ver no site</a>}
               <button onClick={() => remove(p)} className="text-gray-500 hover:underline">Apagar</button>
             </div>
           </li>

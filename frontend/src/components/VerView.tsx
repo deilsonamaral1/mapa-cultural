@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import Icon from "@/components/Icon";
 import Media from "@/components/Media";
+import ShareBar from "@/components/ShareBar";
 import SiteHeader from "@/components/SiteHeader";
 import { photoUrls, youtubeIds } from "@/lib/media";
 import { KINDS, fmtDate } from "@/lib/mapas";
@@ -16,14 +17,12 @@ const safeUrl = (v?: string | null) => {
 };
 
 /** Página de um cadastro publicado neste site: descrição, fotos e vídeos do YouTube. */
-export default function VerPage() {
+export default function VerView({ id }: { id: string }) {
   const [e, setE] = useState<(EntryData & { id: string }) | null>(null);
   const [state, setState] = useState<"loading" | "ok" | "missing" | "error">("loading");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("id");
-    if (!id) return setState("missing");
     supabase.from(T.publicados).select("id, data").eq("id", id).maybeSingle().then((r) => {
       if (r.error) {
         setError(errMsg(r.error));
@@ -34,7 +33,7 @@ export default function VerPage() {
         setState("ok");
       }
     });
-  }, []);
+  }, [id]);
 
   const k = e ? KINDS[e.kind] ?? KINDS.agent : null;
   const site = safeUrl(e?.site);
@@ -61,6 +60,9 @@ export default function VerPage() {
                 </p>
               )}
             </header>
+
+            <ShareBar title={e.name} kind={e.kind}
+              evento={e.kind === "event" && e.startsAt ? { title: e.name, start: new Date(e.startsAt), end: e.endsAt ? new Date(e.endsAt) : null, place: [e.place, e.address, e.city].filter(Boolean).join(", "), details: e.shortDescription } : null} />
 
             <Media photos={photoUrls(e.photos)} videos={youtubeIds(e.videos)} />
 

@@ -50,6 +50,8 @@ Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa 
 - `keepalive.yml`: uma consulta pública por dia, para o projeto não ser pausado por inatividade. Não precisa de configuração.
 - `backup.yml`: toda segunda-feira exporta as tabelas `mc_*` para um arquivo **criptografado** (o repositório é público), guardado 90 dias em *Actions → execução → Artifacts*. Para ligar, crie dois segredos em *Settings → Secrets and variables → Actions → New repository secret*: `SUPABASE_SERVICE_KEY` (a chave secreta do Supabase, só aqui) e `BACKUP_PASSPHRASE` (uma senha longa que você inventa e guarda). Para abrir um backup: `openssl enc -d -aes-256-cbc -pbkdf2 -in backup-AAAA-MM-DD.json.gz.enc -out backup.json.gz` e depois `gunzip backup.json.gz`. Os arquivos de foto, áudio e vídeo (Storage) **não** entram nesse backup, só os dados das tabelas.
 
+**Alcance e compartilhamento.** Cada cadastro, evento e texto tem endereço próprio (`/ver/…`, `/oficial/aquiraz/event/123`, `/leitura/…`), com título e imagem para pré-visualização no WhatsApp e no Google (`sitemap.xml` e `robots.txt` automáticos). `/busca` procura em tudo de uma vez; botões de compartilhar, WhatsApp, salvar (`/favoritos`, só no aparelho) e agenda (Google Agenda e .ics). O site é instalável no celular (PWA) e páginas já visitadas abrem sem internet. Opcional no Netlify: `NEXT_PUBLIC_SITE_URL` com o endereço final (para o sitemap e as pré-visualizações).
+
 **Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
 (depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração
 precisa tirá-lo do mapa em `/admin`. No plano grátis o Supabase pausa o projeto após cerca de 7 dias sem uso

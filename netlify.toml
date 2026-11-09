@@ -21,3 +21,15 @@
   to = "https://mapacultural.secult.ce.gov.br/:splat"
   status = 200
   force = true
+
+# O service worker precisa ser sempre revalidado para as atualizações chegarem.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# Respostas dos mapas oficiais podem ser reaproveitadas por alguns minutos (site mais rápido, menos carga neles).
+[[headers]]
+  for = "/proxy/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300, stale-while-revalidate=3600"

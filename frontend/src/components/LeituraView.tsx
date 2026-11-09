@@ -3,19 +3,18 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import PostPlayer from "@/components/PostPlayer";
+import ShareBar from "@/components/ShareBar";
 import SiteHeader from "@/components/SiteHeader";
 import { POST_ALL_COLS, POST_KINDS, fmtPostDate, rowToPost, type Post } from "@/lib/posts";
 import { errMsg, supabase } from "@/lib/supabase";
 
 /** Um texto do blog ou episódio de podcast publicado. */
-export default function LeituraPage() {
+export default function LeituraView({ id }: { id: string }) {
   const [p, setP] = useState<Post | null>(null);
   const [state, setState] = useState<"loading" | "ok" | "missing" | "error">("loading");
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("id");
-    if (!id) return setState("missing");
     supabase.from("mc_posts").select(POST_ALL_COLS).eq("id", id).maybeSingle().then((r) => {
       if (r.error) {
         setError(errMsg(r.error));
@@ -26,7 +25,7 @@ export default function LeituraPage() {
         setState("ok");
       }
     });
-  }, []);
+  }, [id]);
 
   const k = p ? POST_KINDS[p.kind] : null;
   return (
@@ -49,6 +48,7 @@ export default function LeituraPage() {
               <h1 className="mt-2 text-3xl font-bold leading-tight sm:text-4xl">{p.title}</h1>
               <p className="mt-1 text-sm text-slate-500">{[p.authorName && `Por ${p.authorName}`, fmtPostDate(p.publishedAt)].filter(Boolean).join(" · ")}</p>
             </header>
+            <ShareBar title={p.title} kind={p.kind} />
             {p.summary && <p className="text-lg leading-relaxed text-slate-700">{p.summary}</p>}
             <PostPlayer audio={p.audio} embed={p.embed} />
             {p.body && <div className="whitespace-pre-line text-[17px] leading-relaxed text-slate-800">{p.body}</div>}

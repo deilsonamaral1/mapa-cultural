@@ -7,7 +7,7 @@ import L from "leaflet";
 import "leaflet.markercluster";
 import { useEffect, useRef } from "react";
 import { MapContainer, TileLayer, ZoomControl, useMap } from "react-leaflet";
-import { KINDS, SOURCES, fmtDate, type Item, type Kind } from "@/lib/mapas";
+import { KINDS, SOURCES, fmtDate, itemHref, type Item, type Kind } from "@/lib/mapas";
 
 const LAT = Number(process.env.NEXT_PUBLIC_MAP_LAT ?? -3.9014);
 const LNG = Number(process.env.NEXT_PUBLIC_MAP_LNG ?? -38.3892);
@@ -57,8 +57,8 @@ function popupHtml(it: Item) {
     ${desc ? `<p>${esc(desc)}</p>` : ""}
     ${it.contact ? `<div>${esc(it.contact)}</div>` : ""}
     ${safeUrl(it.site) ? `<a href="${esc(safeUrl(it.site)!)}" target="_blank" rel="noopener noreferrer">Site ou rede social ↗</a><br/>` : ""}
-    ${it.entryId ? `<a href="/ver?id=${esc(it.entryId)}">Ver fotos e detalhes</a><br/>` : ""}
-    ${it.url ? `<a href="/oficial?s=${esc(it.source)}&k=${esc(it.kind)}&id=${it.id}">Ver detalhes</a>` : ""}
+    ${it.entryId ? `<a href="${esc(itemHref(it))}">Ver fotos e detalhes</a><br/>` : ""}
+    ${it.url ? `<a href="${esc(itemHref(it))}">Ver detalhes</a>` : ""}
   </div>`;
 }
 

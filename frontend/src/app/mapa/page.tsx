@@ -6,7 +6,7 @@ import Icon from "@/components/Icon";
 import SiteHeader from "@/components/SiteHeader";
 import { fetchLocal } from "@/lib/local";
 import {
-  KINDS, KIND_ORDER, SOURCES, SUBMIT_KINDS, distanceKm, fetchKind, fmtDate, fmtDay,
+  KINDS, KIND_ORDER, SOURCES, SUBMIT_KINDS, distanceKm, fetchKind, fmtDate, fmtDay, itemHref,
   type Item, type Kind, type SourceKey, type SubmitKind,
 } from "@/lib/mapas";
 import type { Focus } from "@/components/MapView";
@@ -327,13 +327,13 @@ export default function MapaPage() {
                       {km != null && <span>{km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`}</span>}
                       {!listOnly && it.lat == null && <span>sem localização</span>}
                       {it.entryId && (
-                        <a href={`/ver?id=${it.entryId}`} onClick={(e) => e.stopPropagation()} className="ml-auto font-semibold text-brand hover:underline">
+                        <a href={itemHref(it)} onClick={(e) => e.stopPropagation()} className="ml-auto font-semibold text-brand hover:underline">
                           {it.photos?.length || it.videos?.length ? "Ver fotos e vídeos" : "Ver detalhes"}
                         </a>
                       )}
                       {it.url && (
                         <a
-                          href={`/oficial?s=${it.source}&k=${it.kind}&id=${it.id}`}
+                          href={itemHref(it)}
                           onClick={(e) => e.stopPropagation()}
                           className="ml-auto font-semibold text-brand hover:underline"
                         >

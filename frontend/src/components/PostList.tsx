@@ -35,7 +35,7 @@ export default function PostList({ kind, limit, compact = false, home = false }:
         const k = POST_KINDS[p.kind];
         return (
           <li key={p.id}>
-            <a href={`/leitura?id=${p.id}`} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lift">
+            <a href={`/leitura/${p.id}`} className="group flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:shadow-lift">
               {p.cover ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={p.cover} alt="" loading="lazy" className="h-40 w-full object-cover" />
