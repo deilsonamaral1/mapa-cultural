@@ -12,6 +12,7 @@ import { baixarCsv } from "@/lib/csv";
 import { useUser } from "@/lib/useUser";
 import AdminPosts from "@/components/AdminPosts";
 import CampoAdmin from "@/components/CampoAdmin";
+import Equipes from "@/components/Equipes";
 import Equipe from "@/components/Equipe";
 import Media from "@/components/Media";
 import { photoUrls } from "@/lib/media";
@@ -30,7 +31,7 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"aprovacoes" | "textos" | "campo" | "numeros" | "equipe">("aprovacoes");
+  const [view, setView] = useState<"aprovacoes" | "textos" | "campo" | "agentes" | "numeros" | "equipe">("aprovacoes");
 
   const load = useCallback(async () => {
     if (!isStaff) return;
@@ -171,7 +172,7 @@ export default function AdminPage() {
           <>
             <div className="flex flex-wrap items-center gap-2"><h1 className="text-2xl font-bold">Administração</h1><RoleBadge papel={papel} /></div>
             <div className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto border-b border-slate-200 px-4" role="tablist" aria-label="Seções">
-              {([["aprovacoes", "Cadastros"], ["textos", "Blog e podcast"], ["campo", "Formulários de campo"], ["numeros", "Números"], ["equipe", "Equipe"]] as const).filter(([k]) => isAdmin || k === "aprovacoes" || k === "textos" || k === "numeros").map(([k, l]) => (
+              {([["aprovacoes", "Cadastros"], ["textos", "Blog e podcast"], ["campo", "Formulários de campo"], ["agentes", "Equipes de agentes"], ["numeros", "Números"], ["equipe", "Equipe"]] as const).filter(([k]) => isAdmin || k === "aprovacoes" || k === "textos" || k === "numeros").map(([k, l]) => (
                 <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
                   className={`-mb-px shrink-0 border-b-2 px-4 py-3 text-sm font-semibold ${view === k ? "border-sea text-sea" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
                   {l}
@@ -183,6 +184,7 @@ export default function AdminPage() {
             {view === "textos" && <AdminPosts reviewer={{ id: user!.id, name: user!.name || user!.email.split("@")[0] }} />}
             {view === "numeros" && <Numeros isAdmin={isAdmin} />}
             {view === "campo" && <CampoAdmin userId={user!.id} />}
+            {view === "agentes" && <Equipes />}
 
             {view === "aprovacoes" && (<>
             <div className="flex justify-end"><button onClick={exportar} className="rounded-full border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Exportar tudo (planilha .csv)</button></div>

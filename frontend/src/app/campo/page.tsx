@@ -31,6 +31,8 @@ export default function CampoPage() {
   const [enviandoFila, setEnviandoFila] = useState(false);
   const respId = useRef(crypto.randomUUID());
   const formId = useRef("");
+  const envioId = useRef<string | null>(null);
+  const chave = useRef(""); // identifica o rascunho e a cópia do formulário neste aparelho
 
   /** Envia o que ficou guardado no aparelho (respostas feitas sem sinal). */
   const esvaziarFila = useCallback(async () => {
@@ -53,7 +55,7 @@ export default function CampoPage() {
           const cur = respostas[it.qid] ?? {};
           respostas[it.qid] = { ...cur, anexos: [...(cur.anexos ?? []), a] };
         }
-        const r = await supabase.from("mc_respostas").insert({ id: p.id, form_id: p.formId, respondente: p.nome || null, contato: p.contato || null, respostas });
+        const r = await supabase.from("mc_respostas").insert({ id: p.id, form_id: p.formId, envio_id: p.envioId ?? null, respondente: p.nome || null, contato: p.contato || null, respostas });
         // 23505 = já tinha chegado antes (envio repetido): pode apagar do aparelho
         if (!r.error || r.error.code === "23505") await removerPendente(p.id);
       } catch {
@@ -69,17 +71,22 @@ export default function CampoPage() {
   }, []);
 
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("f") ?? "";
+    const q = new URLSearchParams(window.location.search);
+    const e = q.get("e") ?? "";
+    const id = e || (q.get("f") ?? "");
     formId.current = id;
+    chave.current = id;
+    envioId.current = e || null;
     if (!/^[0-9a-f-]{36}$/i.test(id)) return setState("missing");
 
     const abrir = (f: Formulario) => {
       setForm(f);
       setState("ok");
+      if ((f as { nome?: string }).nome) setNome((f as { nome?: string }).nome!); // link pessoal: já vem com o nome do agente
       try {
         const d = JSON.parse(localStorage.getItem(`mc-campo-${id}`) ?? "null");
         if (d) {
-          setNome(d.nome ?? "");
+          if (d.nome) setNome(d.nome);
           setContato(d.contato ?? "");
           setVals(d.vals ?? {});
         }
@@ -95,10 +102,11 @@ export default function CampoPage() {
       }
     };
 
-    supabase.rpc("mc_form_publico", { p_id: id }).then((r) => {
+    const consulta = e ? supabase.rpc("mc_envio_publico", { p_id: id }) : supabase.rpc("mc_form_publico", { p_id: id });
+    consulta.then((r) => {
       const row = Array.isArray(r.data) ? r.data[0] : null;
       if (row) {
-        const f: Formulario = { id: row.id, titulo: row.titulo, descricao: row.descricao, perguntas: cleanPerguntas(row.perguntas) };
+        const f: Formulario & { nome?: string } = { id: e ? row.form_id : row.id, titulo: row.titulo, descricao: row.descricao, perguntas: cleanPerguntas(row.perguntas), nome: row.nome };
         try {
           localStorage.setItem(`mc-campo-form-${id}`, JSON.stringify(f)); // para abrir mesmo sem sinal
         } catch {
@@ -121,7 +129,7 @@ export default function CampoPage() {
   useEffect(() => {
     if (state !== "ok") return;
     try {
-      localStorage.setItem(`mc-campo-${formId.current}`, JSON.stringify({ nome, contato, vals }));
+      localStorage.setItem(`mc-campo-${chave.current}`, JSON.stringify({ nome, contato, vals }));
     } catch {
       /* ignora */
     }
@@ -186,13 +194,13 @@ export default function CampoPage() {
         for (const a of anexos[q.id] ?? []) itens.push({ qid: q.id, name: a.name, type: a.type, path: a.path });
         for (const l of locais[q.id] ?? []) itens.push({ qid: q.id, name: l.name, type: l.type, file: l.file });
       }
-      await salvarPendente({ id: respId.current, formId: form!.id, titulo: form!.titulo, nome: nome.trim(), contato: contato.trim(), vals: visVals, itens, salvoEm: Date.now() });
+      await salvarPendente({ id: respId.current, formId: form!.id, envioId: envioId.current ?? undefined, titulo: form!.titulo, nome: nome.trim(), contato: contato.trim(), vals: visVals, itens, salvoEm: Date.now() });
     }
 
     setBusy(true);
     try {
       if (!temLocal && navigator.onLine) {
-        const r = await supabase.from("mc_respostas").insert({ id: respId.current, form_id: form.id, respondente: nome.trim() || null, contato: contato.trim() || null, respostas });
+        const r = await supabase.from("mc_respostas").insert({ id: respId.current, form_id: form.id, envio_id: envioId.current, respondente: nome.trim() || null, contato: contato.trim() || null, respostas });
         if (r.error) {
           if (!ehErroDeRede(r.error)) throw r.error;
           await guardarNoAparelho();
@@ -215,7 +223,7 @@ export default function CampoPage() {
 
   function finalizar(s: "sent" | "queued") {
     try {
-      localStorage.removeItem(`mc-campo-${formId.current}`);
+      localStorage.removeItem(`mc-campo-${chave.current}`);
     } catch {
       /* ignora */
     }

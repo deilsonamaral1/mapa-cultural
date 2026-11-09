@@ -159,6 +159,7 @@ export default function Home() {
             <h3 className="font-display text-base font-semibold">Participe</h3>
             <ul className="mt-3 space-y-2 text-slate-600">
               <li><Link className="hover:text-brand hover:underline" href="/cadastro">Cadastre-se</Link></li>
+              <li><Link className="hover:text-brand hover:underline" href="/formularios">Formulários abertos</Link></li>
               <li><Link className="hover:text-brand hover:underline" href="/entrar">Entrar</Link></li>
               <li><Link className="hover:text-brand hover:underline" href="/painel">Meu painel</Link></li>
               <li><Link className="hover:text-brand hover:underline" href="/admin">Administração da equipe</Link></li>

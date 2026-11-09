@@ -6,7 +6,7 @@ export const revalidate = 86400;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const fixas = ["", "/mapa", "/blog", "/podcast", "/busca"].map((p) => ({ url: `${SITE_URL}${p}`, lastModified: now }));
+  const fixas = ["", "/mapa", "/blog", "/podcast", "/busca", "/formularios"].map((p) => ({ url: `${SITE_URL}${p}`, lastModified: now }));
   const [pub, posts, ...ofic] = await Promise.all([
     idsPublicados(),
     idsPosts(),

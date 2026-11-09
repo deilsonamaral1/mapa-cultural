@@ -58,7 +58,9 @@ Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa 
 
 **Cópia dos dados oficiais.** Cada busca nos mapas oficiais fica guardada no aparelho: abre na hora se tem menos de 10 minutos e, se o mapa oficial cair, mostra a última cópia (até 7 dias) com um aviso. O servidor da Netlify também guarda a resposta por 5 minutos. Em *Administração → Cadastros aprovados*, o botão **Ficha para o mapa oficial** copia os dados prontos para colar lá. O envio automático para o Mapa Cultural do Aquiraz e da Secult **continua pendente**: depende de uma chave de acesso (App) criada por quem administra cada mapa oficial, e essa chave nunca deve ser colocada no site nem no chat.
 
-**Ordem dos arquivos SQL** (cada um uma vez, no SQL Editor): `setup.sql`, `fotos.sql`, `blog.sql`, `campo.sql`, `equipe.sql`.
+**Equipes de agentes e envio de formulários.** Rode o `supabase/equipes.sql` (depois do `campo.sql`). Em Administração → *Equipes de agentes* o administrador cria equipes e cadastra os agentes (nome, WhatsApp, e-mail; dá para colar vários de uma vez). Em *Formulários de campo → Enviar a agentes* ele marca uma pessoa ou a equipe toda, e cada agente recebe um **link só dele** (`/campo?e=…`), que já abre com o nome dele e liga a resposta a ele; o painel mostra quem já respondeu e quem falta, com botão de WhatsApp com a mensagem pronta. Também há um link único para grupos de WhatsApp. O botão **Publicar no site** põe o formulário na página pública `/formularios`, aberta para qualquer pessoa responder (as respostas continuam privadas, só a equipe vê).
+
+**Ordem dos arquivos SQL** (cada um uma vez, no SQL Editor): `setup.sql`, `fotos.sql`, `blog.sql`, `campo.sql`, `equipe.sql`, `equipes.sql`.
 
 **Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
 (depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração

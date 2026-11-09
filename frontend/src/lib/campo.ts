@@ -18,6 +18,7 @@ export type Formulario = {
   descricao: string | null;
   perguntas: Pergunta[];
   aberto?: boolean;
+  publico?: boolean; // aparece na lista pública de formulários do site
   created_at?: string;
 };
 
@@ -33,6 +34,7 @@ export type Resposta = {
   respondente: string | null;
   contato: string | null;
   respostas: Record<string, unknown>;
+  envio_id?: string | null;
   created_at: string;
 };
 
@@ -193,3 +195,17 @@ export const visivel = (q: Pergunta, vals: Record<string, string>) => !q.condica
 
 export const ehErroDeRede = (e: unknown) =>
   (typeof navigator !== "undefined" && !navigator.onLine) || e instanceof TypeError || /failed to fetch|network|load failed|fetch/i.test((e as Error)?.message ?? "");
+
+export type Equipe = { id: string; nome: string; descricao: string | null };
+export type Membro = { id: string; equipe_id: string; nome: string; telefone: string | null; email: string | null };
+export type Envio = { id: string; form_id: string; membro_id: string };
+
+/** Link pessoal de um agente (abre o formulário já com o nome dele e liga a resposta a ele). */
+export const linkEnvio = (envioId: string) => `${window.location.origin}/campo?e=${envioId}`;
+
+/** WhatsApp com a mensagem pronta. Aceita telefone com ou sem DDD/55; sem telefone, abre o WhatsApp para escolher o contato. */
+export function waLink(telefone: string | null | undefined, texto: string) {
+  let n = (telefone ?? "").replace(/\D/g, "");
+  if (n && n.length <= 11) n = `55${n}`;
+  return `https://wa.me/${n}?text=${encodeURIComponent(texto)}`;
+}

@@ -4,6 +4,7 @@ export type ItemPendente = { qid: string; name: string; type: string; file?: Blo
 export type Pendente = {
   id: string; // = id da resposta
   formId: string;
+  envioId?: string; // link pessoal do agente
   titulo: string;
   nome: string;
   contato: string;

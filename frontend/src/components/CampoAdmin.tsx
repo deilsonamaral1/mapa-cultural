@@ -7,6 +7,7 @@ import {
 } from "@/lib/campo";
 import { baixarCsv } from "@/lib/csv";
 import EntryForm from "@/components/EntryForm";
+import EnviarFormulario from "@/components/EnviarFormulario";
 import { uploadPhoto } from "@/lib/media";
 import { errMsg, supabase, type EntryData } from "@/lib/supabase";
 import { youtubeId } from "@/lib/youtube";
@@ -21,7 +22,7 @@ export default function CampoAdmin({ userId }: { userId: string }) {
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
-  const [view, setView] = useState<{ t: "list" } | { t: "build"; initial?: Formulario; editId?: string } | { t: "resp"; form: Linha }>({ t: "list" });
+  const [view, setView] = useState<{ t: "list" } | { t: "build"; initial?: Formulario; editId?: string } | { t: "resp"; form: Linha } | { t: "send"; form: Linha }>({ t: "list" });
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -34,7 +35,7 @@ export default function CampoAdmin({ userId }: { userId: string }) {
     const list = await Promise.all(
       (r.data ?? []).map(async (f: any) => {
         const c = await supabase.from("mc_respostas").select("id", { count: "exact", head: true }).eq("form_id", f.id);
-        return { id: f.id, titulo: f.titulo, descricao: f.descricao, perguntas: cleanPerguntas(f.perguntas), aberto: f.aberto, created_at: f.created_at, total: c.count ?? 0 } as Linha;
+        return { id: f.id, titulo: f.titulo, descricao: f.descricao, perguntas: cleanPerguntas(f.perguntas), aberto: f.aberto, publico: !!f.publico, created_at: f.created_at, total: c.count ?? 0 } as Linha;
       }),
     );
     setRows(list);
@@ -62,6 +63,15 @@ export default function CampoAdmin({ userId }: { userId: string }) {
     else load();
   }
 
+  async function publicar(f: Linha) {
+    const r = await supabase.from("mc_formularios").update({ publico: !f.publico }).eq("id", f.id);
+    if (r.error) setError(errMsg(r.error));
+    else {
+      setMsg(f.publico ? "Formulário retirado da lista pública." : "Formulário publicado na página /formularios do site.");
+      load();
+    }
+  }
+
   async function remove(f: Linha) {
     if (!confirm(`Apagar "${f.titulo}" e as ${f.total} resposta(s)? Os arquivos enviados ficam guardados no Supabase.`)) return;
     const r = await supabase.from("mc_formularios").delete().eq("id", f.id);
@@ -71,6 +81,7 @@ export default function CampoAdmin({ userId }: { userId: string }) {
 
   if (view.t === "build")
     return <Builder userId={userId} initial={view.initial} editId={view.editId} onDone={() => { setView({ t: "list" }); load(); }} />;
+  if (view.t === "send") return <EnviarFormulario form={view.form} onBack={() => { setView({ t: "list" }); load(); }} />;
   if (view.t === "resp") return <Respostas form={view.form} userId={userId} onBack={() => { setView({ t: "list" }); load(); }} />;
 
   return (
@@ -92,10 +103,15 @@ export default function CampoAdmin({ userId }: { userId: string }) {
                 <h2 className="font-display text-lg font-semibold leading-snug">{f.titulo}</h2>
                 <p className="text-sm text-slate-500">{f.perguntas.length} pergunta(s) · {f.total} resposta(s)</p>
               </div>
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${f.aberto ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-700"}`}>{f.aberto ? "Aberto" : "Encerrado"}</span>
+              <span className="flex flex-wrap gap-1">
+                {f.publico && f.aberto && <span className="rounded-full bg-sea/10 px-3 py-1 text-xs font-medium text-sea">Publicado no site</span>}
+                <span className={`rounded-full px-3 py-1 text-xs font-medium ${f.aberto ? "bg-green-100 text-green-800" : "bg-slate-200 text-slate-700"}`}>{f.aberto ? "Aberto" : "Encerrado"}</span>
+              </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2 text-sm">
-              <button onClick={() => copy(f)} className="rounded-full bg-sea px-4 py-2 font-semibold text-white">Copiar link</button>
+              <button onClick={() => setView({ t: "send", form: f })} className="rounded-full bg-sea px-4 py-2 font-semibold text-white">Enviar a agentes</button>
+              <button onClick={() => publicar(f)} className="rounded-full border border-sea px-4 py-2 font-semibold text-sea">{f.publico ? "Despublicar" : "Publicar no site"}</button>
+              <button onClick={() => copy(f)} className="rounded-full border px-4 py-2">Copiar link</button>
               <a target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`${f.titulo}\n${campoLink(f.id)}`)}`} className="rounded-full border border-green-600 px-4 py-2 font-semibold text-green-700">WhatsApp</a>
               <button onClick={() => setView({ t: "resp", form: f })} className="rounded-full border px-4 py-2 font-semibold">Ver respostas ({f.total})</button>
               <button onClick={() => toggle(f)} className="rounded-full border px-4 py-2">{f.aberto ? "Encerrar" : "Reabrir"}</button>
