@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  TIPOS, campoLink, cleanPerguntas, signedUrls,
+  TIPOS, campoLink, cleanPerguntas, normResp, signedUrls,
   type Anexo, type Formulario, type Pergunta, type PerguntaTipo, type Resposta,
 } from "@/lib/campo";
 import { errMsg, supabase } from "@/lib/supabase";
+import { youtubeId } from "@/lib/youtube";
 
 type Linha = Formulario & { total: number };
 
@@ -164,6 +165,7 @@ function Builder({ userId, initial, editId, onDone }: { userId: string; initial?
           {q.tipo === "escolha" && (
             <textarea rows={3} value={(q.opcoes ?? []).join("\n")} onChange={(e) => upd(i, { opcoes: e.target.value.split("\n") })} placeholder={"Uma opção por linha\nSim\nNão"} aria-label="Opções" />
           )}
+          <p className="text-xs text-slate-500">Em qualquer tipo, o agente também pode juntar fotos, áudios, vídeos e links.</p>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!q.obrigatoria} onChange={(e) => upd(i, { obrigatoria: e.target.checked })} className="!h-5 !w-5" />Resposta obrigatória</label>
         </div>
       ))}
@@ -190,7 +192,7 @@ function Respostas({ form, onBack }: { form: Linha; onBack: () => void }) {
     }
     const data = (r.data ?? []) as Resposta[];
     setList(data);
-    const paths = data.flatMap((x) => Object.values(x.respostas ?? {}).flatMap((v) => (Array.isArray(v) ? v.map((a) => a.path) : [])));
+    const paths = data.flatMap((x) => Object.values(x.respostas ?? {}).flatMap((v) => (normResp(v).anexos ?? []).filter((a) => a.type !== "link").map((a) => a.path)));
     setUrls(await signedUrls(paths));
     setBusy(false);
   }, [form.id]);
@@ -209,6 +211,15 @@ function Respostas({ form, onBack }: { form: Linha; onBack: () => void }) {
   const Anexos = ({ items }: { items: Anexo[] }) => (
     <ul className="grid gap-2 sm:grid-cols-2">
       {items.map((a) => {
+        if (a.type === "link") {
+          const yt = youtubeId(a.path);
+          return (
+            <li key={a.path} className="overflow-hidden rounded-xl bg-slate-50 p-2 sm:col-span-2">
+              {yt && <div className="mb-2 aspect-video overflow-hidden rounded-lg bg-black"><iframe src={`https://www.youtube-nocookie.com/embed/${yt}`} title="Vídeo" loading="lazy" allowFullScreen className="h-full w-full border-0" /></div>}
+              <a href={a.path} target="_blank" rel="noopener noreferrer" className="break-all text-sm font-medium text-brand underline">🔗 {a.path}</a>
+            </li>
+          );
+        }
         const u = urls[a.path];
         return (
           <li key={a.path} className="overflow-hidden rounded-xl bg-slate-50 p-2">
@@ -241,12 +252,13 @@ function Respostas({ form, onBack }: { form: Linha; onBack: () => void }) {
             <button onClick={() => remove(x)} className="text-sm text-red-700 underline">Apagar</button>
           </div>
           {form.perguntas.map((q) => {
-            const v = x.respostas?.[q.id];
-            if (!v || (Array.isArray(v) && !v.length)) return null;
+            const v = normResp(x.respostas?.[q.id]);
+            if (!v.texto && !v.anexos?.length) return null;
             return (
-              <div key={q.id}>
+              <div key={q.id} className="space-y-1">
                 <p className="text-sm font-medium text-slate-600">{q.texto}</p>
-                {Array.isArray(v) ? <Anexos items={v} /> : <p className="mt-0.5 whitespace-pre-line text-slate-900">{v}</p>}
+                {v.texto && <p className="whitespace-pre-line break-words text-slate-900">{v.texto}</p>}
+                {v.anexos && v.anexos.length > 0 && <Anexos items={v.anexos} />}
               </div>
             );
           })}

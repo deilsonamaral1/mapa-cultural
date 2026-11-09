@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/SiteHeader";
-import { MAX_ANEXOS, MAX_ANEXO_MB, cleanPerguntas, uploadAnexo, type Anexo, type Formulario } from "@/lib/campo";
+import { MAX_ANEXO_MB, cleanPerguntas, linkAnexo, uploadAnexo, type Anexo, type Formulario, type RespostaItem } from "@/lib/campo";
 import { errMsg, supabase } from "@/lib/supabase";
 
 type Valores = Record<string, string>;
@@ -16,6 +16,7 @@ export default function CampoPage() {
   const [vals, setVals] = useState<Valores>({});
   const [anexos, setAnexos] = useState<Record<string, Anexo[]>>({});
   const [uploading, setUploading] = useState<string | null>(null);
+  const [links, setLinks] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const respId = useRef(crypto.randomUUID());
@@ -60,10 +61,6 @@ export default function CampoPage() {
     try {
       const cur = anexos[qid] ?? [];
       for (const f of Array.from(files)) {
-        if (cur.length >= MAX_ANEXOS) {
-          setError(`Máximo de ${MAX_ANEXOS} arquivos por pergunta.`);
-          break;
-        }
         const a = await uploadAnexo(form.id, respId.current, f);
         cur.push(a);
         setAnexos((s) => ({ ...s, [qid]: [...cur] }));
@@ -75,6 +72,14 @@ export default function CampoPage() {
     }
   }
 
+  function addLink(qid: string) {
+    const a = linkAnexo(links[qid] ?? "");
+    if (!a) return setError("Esse link não parece válido. Cole o endereço completo (https://…).");
+    setError("");
+    setAnexos((s) => ({ ...s, [qid]: [...(s[qid] ?? []), a] }));
+    setLinks((l) => ({ ...l, [qid]: "" }));
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!form) return;
@@ -82,14 +87,14 @@ export default function CampoPage() {
     if (uploading) return setError("Aguarde o envio dos arquivos terminar.");
     for (const q of form.perguntas) {
       if (!q.obrigatoria) continue;
-      const ok = q.tipo === "midia" ? (anexos[q.id]?.length ?? 0) > 0 : (vals[q.id] ?? "").trim() !== "";
+      const ok = (anexos[q.id]?.length ?? 0) > 0 || (vals[q.id] ?? "").trim() !== "";
       if (!ok) return setError(`Responda: "${q.texto}"`);
     }
-    const respostas: Record<string, string | Anexo[]> = {};
+    const respostas: Record<string, RespostaItem> = {};
     for (const q of form.perguntas) {
-      if (q.tipo === "midia") {
-        if (anexos[q.id]?.length) respostas[q.id] = anexos[q.id];
-      } else if ((vals[q.id] ?? "").trim()) respostas[q.id] = vals[q.id].trim();
+      const texto = (vals[q.id] ?? "").trim();
+      const an = anexos[q.id] ?? [];
+      if (texto || an.length) respostas[q.id] = { ...(texto ? { texto } : {}), ...(an.length ? { anexos: an } : {}) };
     }
     setBusy(true);
     const r = await supabase.from("mc_respostas").insert({
@@ -166,22 +171,30 @@ export default function CampoPage() {
                     ))}
                   </div>
                 )}
-                {q.tipo === "midia" && (
-                  <div className="space-y-2">
-                    {(anexos[q.id] ?? []).map((a) => (
-                      <div key={a.path} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm">
-                        <span className="truncate">{a.type.startsWith("image/") ? "📷" : a.type.startsWith("audio/") ? "🎙️" : "🎬"} {a.name}</span>
-                        <button type="button" aria-label="Remover" onClick={() => setAnexos((s) => ({ ...s, [q.id]: (s[q.id] ?? []).filter((x) => x.path !== a.path) }))} className="grid h-9 w-9 shrink-0 place-items-center text-slate-500">×</button>
-                      </div>
+                <div className="space-y-2 border-t border-slate-100 pt-3">
+                  {(anexos[q.id] ?? []).map((a) => (
+                    <div key={a.path} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm">
+                      <span className="truncate">{a.type === "link" ? "🔗" : a.type.startsWith("image/") ? "📷" : a.type.startsWith("audio/") ? "🎙️" : "🎬"} {a.name}</span>
+                      <button type="button" aria-label="Remover" onClick={() => setAnexos((s) => ({ ...s, [q.id]: (s[q.id] ?? []).filter((x) => x.path !== a.path) }))} className="grid h-9 w-9 shrink-0 place-items-center text-slate-500">×</button>
+                    </div>
+                  ))}
+                  <p className="text-xs font-medium text-slate-500">{uploading === q.id ? "Enviando… não feche a página" : "Quer mostrar também? Adicione:"}</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {([["📷", "Foto", "image/*"], ["🎙️", "Áudio", "audio/*"], ["🎬", "Vídeo", "video/*"]] as const).map(([ico, nome, accept]) => (
+                      <label key={nome} className={`flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-300 bg-white px-2 py-3 text-sm font-semibold text-slate-700 active:bg-slate-50 ${uploading ? "opacity-50" : ""}`}>
+                        <span className="text-xl" aria-hidden="true">{ico}</span>{nome}
+                        <input type="file" multiple accept={accept} className="sr-only" disabled={!!uploading}
+                          onChange={(e) => { addFiles(q.id, e.target.files); e.target.value = ""; }} />
+                      </label>
                     ))}
-                    <label className="flex cursor-pointer items-center justify-center rounded-xl border-2 border-dashed border-slate-400 bg-white px-4 py-4 text-base font-semibold text-slate-700 active:bg-slate-50">
-                      {uploading === q.id ? "Enviando… não feche a página" : "+ Foto, áudio ou vídeo"}
-                      <input type="file" multiple accept="image/*,audio/*,video/*" className="sr-only" disabled={!!uploading}
-                        onChange={(e) => { addFiles(q.id, e.target.files); e.target.value = ""; }} />
-                    </label>
-                    <p className="text-xs text-slate-500">Até {MAX_ANEXO_MB} MB por arquivo. Vídeos grandes: grave um trecho menor.</p>
                   </div>
-                )}
+                  <div className="flex gap-2">
+                    <input value={links[q.id] ?? ""} onChange={(e) => setLinks((l) => ({ ...l, [q.id]: e.target.value }))} placeholder="Ou cole um link (YouTube, Drive…)" aria-label="Link de vídeo ou áudio"
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(q.id); } }} />
+                    <button type="button" onClick={() => addLink(q.id)} className="shrink-0 rounded-xl border border-slate-300 px-4 font-semibold">Adicionar</button>
+                  </div>
+                  <p className="text-xs text-slate-500">Arquivos de até {MAX_ANEXO_MB} MB cada. Vídeo maior? Envie para o YouTube (como "não listado") ou Google Drive e cole o link acima.</p>
+                </div>
               </div>
             ))}
 

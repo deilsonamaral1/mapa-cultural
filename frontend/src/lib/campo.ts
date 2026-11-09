@@ -20,15 +20,18 @@ export type Formulario = {
   created_at?: string;
 };
 
-/** Anexo guardado na resposta (o arquivo fica num espaço privado; só o administrador vê). */
+/** Anexo guardado na resposta. Arquivo: fica num espaço privado (só o administrador vê). Link: type "link", path = endereço. */
 export type Anexo = { path: string; name: string; type: string };
+
+/** Resposta de uma pergunta: texto e anexos (foto, áudio, vídeo, links) podem vir juntos, em qualquer tipo de pergunta. */
+export type RespostaItem = { texto?: string; anexos?: Anexo[] };
 
 export type Resposta = {
   id: string;
   form_id: string;
   respondente: string | null;
   contato: string | null;
-  respostas: Record<string, string | Anexo[]>;
+  respostas: Record<string, unknown>;
   created_at: string;
 };
 
@@ -36,12 +39,11 @@ export const TIPOS: Record<PerguntaTipo, string> = {
   texto: "Resposta curta",
   longo: "Resposta longa",
   escolha: "Escolher uma opção",
-  midia: "Anexos (fotos, áudio, vídeo)",
+  midia: "Só anexos (foto, áudio, vídeo)",
 };
 
 export const CAMPO_BUCKET = "mc-campo";
 export const MAX_ANEXO_MB = 50;
-export const MAX_ANEXOS = 12;
 
 export const campoLink = (id: string) => `${window.location.origin}/campo?f=${id}`;
 
@@ -99,4 +101,27 @@ export async function signedUrls(paths: string[]): Promise<Record<string, string
   const out: Record<string, string> = {};
   for (const x of r.data ?? []) if (x.path && x.signedUrl) out[x.path] = x.signedUrl;
   return out;
+}
+
+/** Lê uma resposta no formato novo ({texto, anexos}) ou nos formatos antigos (texto puro ou lista de anexos). */
+export function normResp(v: unknown): RespostaItem {
+  if (typeof v === "string") return { texto: v };
+  if (Array.isArray(v)) return { anexos: v as Anexo[] };
+  if (v && typeof v === "object") {
+    const o = v as RespostaItem;
+    return { texto: typeof o.texto === "string" ? o.texto : undefined, anexos: Array.isArray(o.anexos) ? o.anexos : undefined };
+  }
+  return {};
+}
+
+/** Link colado pelo agente (YouTube, Drive, WhatsApp...). Só aceita http(s). */
+export function linkAnexo(raw: string): Anexo | null {
+  const s = raw.trim();
+  try {
+    const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`);
+    if (!/^https?:$/.test(u.protocol) || !u.hostname.includes(".")) return null;
+    return { path: u.toString(), name: u.hostname.replace(/^www\./, ""), type: "link" };
+  } catch {
+    return null;
+  }
 }
