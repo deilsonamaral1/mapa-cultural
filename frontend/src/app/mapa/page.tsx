@@ -29,7 +29,7 @@ const PAGE_SIZE = 100;
 const isSubmitKind = (k: Kind): k is SubmitKind => (SUBMIT_KINDS as Kind[]).includes(k);
 const isOpen = (it: Item) => !it.endsAt || it.endsAt.getTime() >= Date.now();
 
-type Status = { state: "loading" | "ok" | "error"; count?: number; error?: string; truncated?: boolean };
+type Status = { state: "loading" | "ok" | "error"; count?: number; error?: string; truncated?: boolean; stale?: boolean };
 
 const chip = (on: boolean) =>
   `rounded-full px-3 py-1.5 text-xs font-medium transition ${on ? "bg-sea text-white" : "bg-slate-100 text-slate-700 hover:bg-slate-200"}`;
@@ -92,7 +92,7 @@ export default function MapaPage() {
         const k = active[i];
         if (r.status === "fulfilled") {
           all.push(...r.value.items);
-          st[k] = { state: "ok", count: r.value.items.length, truncated: r.value.truncated || (k === "estado" && r.value.items.length >= 400) };
+          st[k] = { state: "ok", stale: r.value.stale, count: r.value.items.length, truncated: r.value.truncated || (k === "estado" && r.value.items.length >= 400) };
         } else {
           st[k] = { state: "error", error: r.reason instanceof Error ? r.reason.message : "erro desconhecido" };
           if (k === "local") console.warn("Cadastros do site indisponíveis:", r.reason);
@@ -140,6 +140,7 @@ export default function MapaPage() {
   const loading = active.some((k) => status[k]?.state === "loading");
   const failed = active.filter((k) => k !== "local" && status[k]?.state === "error"); // a fonte "Site" é opcional: falha dela não assusta o visitante
   const truncated = active.some((k) => status[k]?.truncated);
+  const stale = active.some((k) => status[k]?.stale);
   const pins = visible.filter((it) => it.lat != null).length;
   const withoutPin = visible.length - pins;
 
@@ -276,6 +277,9 @@ export default function MapaPage() {
         </span>
         {me && <button onClick={() => setMe(null)} className="font-medium underline">Limpar localização</button>}
       </div>
+      {!loading && stale && (
+        <p className="bg-slate-100 px-4 py-2 text-xs text-slate-700">O mapa oficial não respondeu agora. Mostrando a última cópia guardada neste aparelho.</p>
+      )}
       {!loading && truncated && (
         <p className="bg-amber-50 px-4 py-2 text-xs text-amber-800">Mostrando os primeiros resultados. Use a busca ou o município para refinar.</p>
       )}

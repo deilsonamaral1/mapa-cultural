@@ -67,7 +67,7 @@ export type Item = {
   entryId?: string; // só cadastros deste site: id para a página /ver
 };
 
-export type FetchResult = { items: Item[]; truncated: boolean };
+export type FetchResult = { items: Item[]; truncated: boolean; stale?: boolean }; // stale: veio da cópia guardada (mapa oficial fora do ar ou sem internet)
 
 /* ------------------------------ utilidades ------------------------------ */
 
@@ -283,7 +283,7 @@ async function fetchRows(
 }
 
 /** Busca um tipo de entidade em uma instância. Aquiraz é lida inteira (até 5 páginas); o estado, só a 1ª página. */
-export async function fetchKind(source: OfficialKey, kind: Kind, opts: FetchOpts): Promise<FetchResult> {
+async function fetchKindRaw(source: OfficialKey, kind: Kind, opts: FetchOpts): Promise<FetchResult> {
   // Aquiraz é lido inteiro. No estado há dezenas de milhares de agentes, e muitos têm o nome em branco
   // (a lista por nome começa por eles), então buscamos até 3 páginas de agentes e espaços.
   const maxPages = source === "aquiraz" ? 5 : kind === "agent" || kind === "space" ? 3 : 1;
@@ -323,6 +323,58 @@ export async function fetchKind(source: OfficialKey, kind: Kind, opts: FetchOpts
 /** Endereço da página de detalhes dentro deste site (cadastros do site ou dos mapas oficiais). */
 export function itemHref(it: Pick<Item, "source" | "kind" | "id" | "entryId">): string {
   return it.entryId ? `/ver/${it.entryId}` : `/oficial/${it.source}/${it.kind}/${it.id}`;
+}
+
+/* ------------------------------ cópia guardada no aparelho ------------------------------ */
+
+// Os mapas oficiais são lidos ao vivo, mas cada busca fica guardada no aparelho: abre na hora se for recente
+// (10 min) e, se o mapa oficial estiver fora do ar ou sem internet, mostra a última cópia (até 7 dias).
+const FRESCO_MS = 10 * 60 * 1000;
+const VELHO_MS = 7 * 24 * 3600 * 1000;
+const CACHE_PREFIX = "mc-oficial:";
+
+type Salvo = { t: number; truncated: boolean; items: any[] };
+
+function lerCache(key: string): { t: number; res: FetchResult } | null {
+  try {
+    const s: Salvo | null = JSON.parse(localStorage.getItem(key) ?? "null");
+    if (!s || !Array.isArray(s.items)) return null;
+    const items = s.items.map((i) => ({ ...i, startsAt: i.startsAt ? new Date(i.startsAt) : null, endsAt: i.endsAt ? new Date(i.endsAt) : null }));
+    return { t: s.t, res: { items, truncated: !!s.truncated } };
+  } catch {
+    return null;
+  }
+}
+
+function gravarCache(key: string, res: FetchResult) {
+  const valor = JSON.stringify({ t: Date.now(), truncated: res.truncated, items: res.items } satisfies Salvo);
+  try {
+    localStorage.setItem(key, valor);
+  } catch {
+    try {
+      // espaço cheio: apaga as cópias antigas e tenta de novo
+      for (const k of Object.keys(localStorage)) if (k.startsWith(CACHE_PREFIX)) localStorage.removeItem(k);
+      localStorage.setItem(key, valor);
+    } catch {
+      /* sem espaço: segue sem cópia */
+    }
+  }
+}
+
+export async function fetchKind(source: OfficialKey, kind: Kind, opts: FetchOpts): Promise<FetchResult> {
+  if (typeof localStorage === "undefined") return fetchKindRaw(source, kind, opts);
+  const key = `${CACHE_PREFIX}${source}:${kind}:${opts.q ?? ""}:${opts.municipio ?? ""}`;
+  const guardado = lerCache(key);
+  if (guardado && Date.now() - guardado.t < FRESCO_MS) return guardado.res;
+  try {
+    const res = await fetchKindRaw(source, kind, opts);
+    gravarCache(key, res);
+    return res;
+  } catch (err) {
+    if (opts.signal?.aborted) throw err;
+    if (guardado && Date.now() - guardado.t < VELHO_MS) return { ...guardado.res, stale: true };
+    throw err;
+  }
 }
 
 /* ------------------------------ página de detalhes ------------------------------ */

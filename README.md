@@ -54,6 +54,12 @@ Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa 
 
 **Equipe.** Rode também o `supabase/equipe.sql`. Há três papéis: *agente* (padrão), *moderador* (aprova cadastros e textos do blog e vê os números) e *administrador* (tudo, inclusive Equipe e Formulários de campo). Em Administração → Equipe o administrador adiciona, troca o papel ou remove pessoas pelo e-mail. Cada decisão guarda quem aprovou ou rejeitou e quando; o botão de Administração no topo mostra quantos itens esperam aprovação. Dá para exportar cadastros e respostas dos formulários para planilha (CSV) e há uma aba **Números**.
 
+**Campo sem sinal e modelos.** Se não houver internet, o formulário de campo guarda a resposta e os arquivos no aparelho (IndexedDB) e envia sozinho quando o link é aberto de novo com sinal. Há perguntas de nota (1 a 5) e data, perguntas condicionais (aparecem conforme uma resposta anterior), modelos prontos e o botão *Criar cadastro no mapa* em cada resposta (monta o rascunho com texto, fotos e vídeos).
+
+**Cópia dos dados oficiais.** Cada busca nos mapas oficiais fica guardada no aparelho: abre na hora se tem menos de 10 minutos e, se o mapa oficial cair, mostra a última cópia (até 7 dias) com um aviso. O servidor da Netlify também guarda a resposta por 5 minutos. Em *Administração → Cadastros aprovados*, o botão **Ficha para o mapa oficial** copia os dados prontos para colar lá. O envio automático para o Mapa Cultural do Aquiraz e da Secult **continua pendente**: depende de uma chave de acesso (App) criada por quem administra cada mapa oficial, e essa chave nunca deve ser colocada no site nem no chat.
+
+**Ordem dos arquivos SQL** (cada um uma vez, no SQL Editor): `setup.sql`, `fotos.sql`, `blog.sql`, `campo.sql`, `equipe.sql`.
+
 **Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
 (depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração
 precisa tirá-lo do mapa em `/admin`. No plano grátis o Supabase pausa o projeto após cerca de 7 dias sem uso

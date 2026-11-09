@@ -33,3 +33,9 @@
   for = "/proxy/*"
   [headers.values]
     Cache-Control = "public, max-age=300, stale-while-revalidate=3600"
+
+# Cópia por alguns minutos na rede da Netlify: o mapa oficial é consultado menos vezes e a página abre mais rápido.
+[[headers]]
+  for = "/proxy/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300, stale-while-revalidate=900"

@@ -6,7 +6,7 @@ import Icon from "@/components/Icon";
 import RoleBadge from "@/components/RoleBadge";
 import SiteHeader from "@/components/SiteHeader";
 import { T, errMsg, publicData, rowToSubmission, supabase, type EntryStatus, type Submission } from "@/lib/supabase";
-import { KINDS, fmtDate } from "@/lib/mapas";
+import { KINDS, SOURCES, fmtDate } from "@/lib/mapas";
 import Numeros from "@/components/Numeros";
 import { baixarCsv } from "@/lib/csv";
 import { useUser } from "@/lib/useUser";
@@ -107,6 +107,33 @@ export default function AdminPage() {
     ]);
   }
 
+  /** O envio automático para o mapa oficial depende de chaves de acesso deles; enquanto isso, a ficha pronta para colar. */
+  async function copiarFicha(s: Submission) {
+    const linhas = [
+      `${KINDS[s.kind].label}: ${s.name}`,
+      s.type && `Tipo: ${s.type}`,
+      s.areas?.length ? `Áreas: ${s.areas.join(", ")}` : null,
+      `Descrição curta: ${s.shortDescription}`,
+      s.longDescription && `Descrição completa:\n${s.longDescription}`,
+      s.place && `Local: ${s.place}`,
+      s.startsAt && `Início: ${fmtDate(new Date(s.startsAt))}`,
+      s.endsAt && `Fim: ${fmtDate(new Date(s.endsAt))}`,
+      (s.address || s.city) && `Endereço: ${[s.address, s.city].filter(Boolean).join(", ")}`,
+      s.lat != null && s.lng != null && `Coordenadas: ${s.lat}, ${s.lng}`,
+      s.contact && `Contato: ${s.contact}`,
+      s.site && `Site: ${s.site}`,
+      s.videos?.length ? `Vídeos: ${s.videos.map((v) => `https://youtu.be/${v}`).join(" ")}` : null,
+      s.photos?.length ? `Fotos:\n${s.photos.join("\n")}` : null,
+    ].filter(Boolean);
+    try {
+      await navigator.clipboard.writeText(linhas.join("\n"));
+      setError("");
+      alert(`Ficha copiada. Abra o painel do mapa oficial para colar:\nAquiraz: ${SOURCES.aquiraz.site}/painel/\nCeará: ${SOURCES.estado.site}/painel/`);
+    } catch {
+      prompt("Copie a ficha:", linhas.join("\n"));
+    }
+  }
+
   function reject(s: Submission) {
     const note = prompt("Motivo da rejeição (o agente vai ver):", s.note ?? "");
     if (note === null) return;
@@ -205,6 +232,7 @@ export default function AdminPage() {
                     {s.status === "approved" && (
                       <>
                         <button disabled={working === s.id} onClick={() => approve(s)} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50" title="Atualiza o que está no mapa com o texto atual do cadastro">Republicar</button>
+                        <button onClick={() => copiarFicha(s)} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50" title="Copia os dados para você colar ao cadastrar no mapa oficial">Ficha para o mapa oficial</button>
                         <button disabled={working === s.id} onClick={() => unpublish(s, "pending", null)} className="rounded-full border px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50">Tirar do mapa</button>
                       </>
                     )}
