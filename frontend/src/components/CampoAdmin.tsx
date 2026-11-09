@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
-  TIPOS, campoLink, cleanPerguntas, normResp, signedUrls,
+  MODELOS, TIPOS, campoLink, cleanPerguntas, normResp, signedUrls,
   type Anexo, type Formulario, type Pergunta, type PerguntaTipo, type Resposta,
 } from "@/lib/campo";
 import { baixarCsv } from "@/lib/csv";
-import { errMsg, supabase } from "@/lib/supabase";
+import EntryForm from "@/components/EntryForm";
+import { uploadPhoto } from "@/lib/media";
+import { errMsg, supabase, type EntryData } from "@/lib/supabase";
 import { youtubeId } from "@/lib/youtube";
 
 type Linha = Formulario & { total: number };
@@ -69,7 +71,7 @@ export default function CampoAdmin({ userId }: { userId: string }) {
 
   if (view.t === "build")
     return <Builder userId={userId} initial={view.initial} editId={view.editId} onDone={() => { setView({ t: "list" }); load(); }} />;
-  if (view.t === "resp") return <Respostas form={view.form} onBack={() => { setView({ t: "list" }); load(); }} />;
+  if (view.t === "resp") return <Respostas form={view.form} userId={userId} onBack={() => { setView({ t: "list" }); load(); }} />;
 
   return (
     <section className="space-y-4">
@@ -129,7 +131,15 @@ function Builder({ userId, initial, editId, onDone }: { userId: string; initial?
     setError("");
     const perguntas = qs
       .filter((q) => q.texto.trim())
-      .map((q) => ({ id: q.id, texto: q.texto.trim(), tipo: q.tipo, obrigatoria: !!q.obrigatoria, ...(q.tipo === "escolha" ? { opcoes: (q.opcoes ?? []).map((o) => o.trim()).filter(Boolean) } : {}) }));
+      .map((q, i, all) => ({
+        id: q.id,
+        texto: q.texto.trim(),
+        tipo: q.tipo,
+        obrigatoria: !!q.obrigatoria,
+        ...(q.tipo === "escolha" ? { opcoes: (q.opcoes ?? []).map((o) => o.trim()).filter(Boolean) } : {}),
+        // a condição só vale se apontar para uma pergunta ANTERIOR que ainda existe
+        ...(q.condicao && q.condicao.igual && all.slice(0, i).some((a) => a.id === q.condicao!.id) ? { condicao: q.condicao } : {}),
+      }));
     if (!perguntas.length) return setError("Escreva pelo menos uma pergunta.");
     if (perguntas.some((q) => q.tipo === "escolha" && (q.opcoes?.length ?? 0) < 2)) return setError("Perguntas de escolha precisam de pelo menos 2 opções.");
     setBusy(true);
@@ -144,6 +154,16 @@ function Builder({ userId, initial, editId, onDone }: { userId: string; initial?
     <form onSubmit={save} className="space-y-4">
       <button type="button" onClick={onDone} className="text-sm font-medium text-brand hover:underline">← Voltar</button>
       <h2 className="font-display text-xl font-bold">{editId ? "Editar formulário" : "Novo formulário"}</h2>
+      {!editId && !initial && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-3">
+          <p className="mb-2 text-sm font-medium text-slate-700">Começar de um modelo pronto (você pode mudar tudo depois):</p>
+          <div className="flex flex-wrap gap-2">
+            {MODELOS.map((m) => (
+              <button key={m.nome} type="button" onClick={() => { setTitulo(m.titulo); setDescricao(m.descricao); setQs(m.perguntas()); }} className="rounded-full border px-4 py-2 text-sm font-medium hover:bg-slate-50">{m.nome}</button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="space-y-3 rounded-xl border bg-white p-4">
         <div><label>Título<input required value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ex.: Visita ao mestre de cultura popular" /></label></div>
         <div><label>Instruções para o agente (opcional)<textarea rows={3} value={descricao} onChange={(e) => setDescricao(e.target.value)} /></label></div>
@@ -166,6 +186,28 @@ function Builder({ userId, initial, editId, onDone }: { userId: string; initial?
           {q.tipo === "escolha" && (
             <textarea rows={3} value={(q.opcoes ?? []).join("\n")} onChange={(e) => upd(i, { opcoes: e.target.value.split("\n") })} placeholder={"Uma opção por linha\nSim\nNão"} aria-label="Opções" />
           )}
+          {(() => {
+            const anteriores = qs.slice(0, i).filter((a) => (a.tipo === "escolha" || a.tipo === "escala") && a.texto.trim());
+            if (!anteriores.length) return null;
+            const alvo = anteriores.find((a) => a.id === q.condicao?.id);
+            const valores = alvo ? (alvo.tipo === "escala" ? ["1", "2", "3", "4", "5"] : (alvo.opcoes ?? []).map((o) => o.trim()).filter(Boolean)) : [];
+            return (
+              <div className="rounded-lg bg-slate-50 p-3 text-sm">
+                <label className="text-slate-600">Mostrar esta pergunta
+                  <select value={q.condicao?.id ?? ""} onChange={(e) => upd(i, { condicao: e.target.value ? { id: e.target.value, igual: "" } : undefined })}>
+                    <option value="">sempre</option>
+                    {anteriores.map((a) => <option key={a.id} value={a.id}>só se a resposta de “{a.texto.trim().slice(0, 40)}” for…</option>)}
+                  </select>
+                </label>
+                {alvo && (
+                  <select className="mt-2" value={q.condicao?.igual ?? ""} onChange={(e) => upd(i, { condicao: { id: alvo.id, igual: e.target.value } })} aria-label="Valor que mostra a pergunta">
+                    <option value="">escolha o valor</option>
+                    {valores.map((v) => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                )}
+              </div>
+            );
+          })()}
           <p className="text-xs text-slate-500">Em qualquer tipo, o agente também pode juntar fotos, áudios, vídeos e links.</p>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!q.obrigatoria} onChange={(e) => upd(i, { obrigatoria: e.target.checked })} className="!h-5 !w-5" />Resposta obrigatória</label>
         </div>
@@ -178,11 +220,52 @@ function Builder({ userId, initial, editId, onDone }: { userId: string; initial?
   );
 }
 
-function Respostas({ form, onBack }: { form: Linha; onBack: () => void }) {
+function Respostas({ form, userId, onBack }: { form: Linha; userId: string; onBack: () => void }) {
   const [list, setList] = useState<Resposta[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
+  const [criando, setCriando] = useState<{ prefill: Partial<EntryData> } | null>(null);
+  const [preparando, setPreparando] = useState<string | null>(null);
+  const [aviso, setAviso] = useState("");
+
+  /** Junta as respostas num rascunho de cadastro: texto, links do YouTube e até 4 fotos (copiadas para o espaço público). */
+  async function prepararCadastro(x: Resposta) {
+    setPreparando(x.id);
+    setError("");
+    try {
+      const partes: string[] = [];
+      const fotos: string[] = [];
+      const videos: string[] = [];
+      for (const q of form.perguntas) {
+        const v = normResp(x.respostas?.[q.id]);
+        if (v.texto) partes.push(`${q.texto}\n${v.texto}`);
+        for (const a of v.anexos ?? []) {
+          if (a.type === "link") {
+            const yt = youtubeId(a.path);
+            if (yt && !videos.includes(yt)) videos.push(yt);
+          } else if (a.type.startsWith("image/") && fotos.length < 4 && urls[a.path]) {
+            const blob = await (await fetch(urls[a.path])).blob();
+            fotos.push(await uploadPhoto(userId, new File([blob], a.name, { type: a.type })));
+          }
+        }
+      }
+      const primeira = partes[0]?.split("\n").slice(1).join(" ") ?? "";
+      setCriando({
+        prefill: {
+          shortDescription: primeira.slice(0, 280),
+          longDescription: partes.join("\n\n") || null,
+          contact: x.contato,
+          photos: fotos,
+          videos,
+        },
+      });
+    } catch (e) {
+      setError(errMsg(e));
+    } finally {
+      setPreparando(null);
+    }
+  }
 
   const load = useCallback(async () => {
     const r = await supabase.from("mc_respostas").select("*").eq("form_id", form.id).order("created_at", { ascending: false });
@@ -264,7 +347,10 @@ function Respostas({ form, onBack }: { form: Linha; onBack: () => void }) {
               <h3 className="font-semibold">{x.respondente || "Sem nome"}</h3>
               <p className="text-sm text-slate-500">{[x.contato, new Date(x.created_at).toLocaleString("pt-BR")].filter(Boolean).join(" · ")}</p>
             </div>
-            <button onClick={() => remove(x)} className="text-sm text-red-700 underline">Apagar</button>
+            <span className="flex flex-wrap gap-3 text-sm">
+              <button onClick={() => prepararCadastro(x)} disabled={preparando === x.id} className="font-semibold text-brand underline disabled:opacity-50">{preparando === x.id ? "Preparando…" : "Criar cadastro no mapa"}</button>
+              <button onClick={() => remove(x)} className="text-red-700 underline">Apagar</button>
+            </span>
           </div>
           {form.perguntas.map((q) => {
             const v = normResp(x.respostas?.[q.id]);

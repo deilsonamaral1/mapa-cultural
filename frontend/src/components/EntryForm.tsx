@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { MAX_PHOTOS, MAX_VIDEOS, photoUrls, uploadPhoto, youtubeId } from "@/lib/media";
-import { T, errMsg, supabase, type EntryData, type Submission } from "@/lib/supabase";
+import { T, errMsg, publicData, supabase, type EntryData, type Submission } from "@/lib/supabase";
 import { KINDS, SUBMIT_KINDS, type SubmitKind } from "@/lib/mapas";
 
 const LocationPicker = dynamic(() => import("@/components/LocationPicker"), {
@@ -33,28 +33,31 @@ type Props = {
   ownerId: string;
   ownerName: string;
   initial?: Submission;
+  prefill?: Partial<EntryData>; // começa o formulário com estes dados (ex.: vindos de uma resposta de campo)
+  publishNow?: boolean; // equipe: salva já publicado no mapa
   onSaved: () => void;
   onCancel: () => void;
 };
 
-export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCancel }: Props) {
-  const [kind, setKind] = useState<SubmitKind>(initial?.kind ?? "agent");
-  const [name, setName] = useState(initial?.name ?? "");
-  const [shortDescription, setShort] = useState(initial?.shortDescription ?? "");
-  const [longDescription, setLong] = useState(initial?.longDescription ?? "");
-  const [type, setType] = useState(initial?.type ?? "");
-  const [areas, setAreas] = useState<string[]>(initial?.areas ?? []);
-  const [lat, setLat] = useState<number | null>(initial?.lat ?? null);
-  const [lng, setLng] = useState<number | null>(initial?.lng ?? null);
-  const [address, setAddress] = useState(initial?.address ?? "");
-  const [city, setCity] = useState(initial?.city ?? "Aquiraz");
-  const [place, setPlace] = useState(initial?.place ?? "");
-  const [startsAt, setStartsAt] = useState(toInput(initial?.startsAt));
-  const [endsAt, setEndsAt] = useState(toInput(initial?.endsAt));
-  const [site, setSite] = useState(initial?.site ?? "");
-  const [contact, setContact] = useState(initial?.contact ?? "");
-  const [photos, setPhotos] = useState<string[]>(photoUrls(initial?.photos));
-  const [videos, setVideos] = useState<string[]>(initial?.videos?.length ? initial.videos.map((v) => `https://youtu.be/${v}`) : [""]);
+export default function EntryForm({ ownerId, ownerName, initial, prefill, publishNow, onSaved, onCancel }: Props) {
+  const init: Partial<EntryData> | undefined = initial ?? prefill;
+  const [kind, setKind] = useState<SubmitKind>(init?.kind ?? "agent");
+  const [name, setName] = useState(init?.name ?? "");
+  const [shortDescription, setShort] = useState(init?.shortDescription ?? "");
+  const [longDescription, setLong] = useState(init?.longDescription ?? "");
+  const [type, setType] = useState(init?.type ?? "");
+  const [areas, setAreas] = useState<string[]>(init?.areas ?? []);
+  const [lat, setLat] = useState<number | null>(init?.lat ?? null);
+  const [lng, setLng] = useState<number | null>(init?.lng ?? null);
+  const [address, setAddress] = useState(init?.address ?? "");
+  const [city, setCity] = useState(init?.city ?? "Aquiraz");
+  const [place, setPlace] = useState(init?.place ?? "");
+  const [startsAt, setStartsAt] = useState(toInput(init?.startsAt));
+  const [endsAt, setEndsAt] = useState(toInput(init?.endsAt));
+  const [site, setSite] = useState(init?.site ?? "");
+  const [contact, setContact] = useState(init?.contact ?? "");
+  const [photos, setPhotos] = useState<string[]>(photoUrls(init?.photos));
+  const [videos, setVideos] = useState<string[]>(init?.videos?.length ? init.videos.map((v) => `https://youtu.be/${v}`) : [""]);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -128,8 +131,14 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
         const r = await supabase.from(T.cadastros).update({ data: { ...data, ownerName }, status: "pending", note: null }).eq("id", initial.id);
         if (r.error) throw r.error;
       } else {
-        const r = await supabase.from(T.cadastros).insert({ data: { ...data, ownerName }, owner_id: ownerId, status: "pending" });
+        const r = await supabase.from(T.cadastros).insert({ data: { ...data, ownerName }, owner_id: ownerId, status: "pending" }).select("id").single();
         if (r.error) throw r.error;
+        if (publishNow) {
+          const pub = await supabase.from(T.publicados).upsert({ id: r.data.id, kind: data.kind, data: publicData(data as never) });
+          if (pub.error) throw pub.error;
+          const ok = await supabase.from(T.cadastros).update({ status: "approved", note: null }).eq("id", r.data.id);
+          if (ok.error) throw ok.error;
+        }
       }
       onSaved();
     } catch (err) {
@@ -252,7 +261,7 @@ export default function EntryForm({ ownerId, ownerName, initial, onSaved, onCanc
 
       {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button disabled={busy} className="rounded-full bg-sea px-6 py-2.5 font-semibold text-white disabled:opacity-50">{busy ? "Enviando…" : initial ? "Salvar e reenviar" : "Enviar para aprovação"}</button>
+        <button disabled={busy} className="rounded-full bg-sea px-6 py-2.5 font-semibold text-white disabled:opacity-50">{busy ? "Enviando…" : initial ? "Salvar e reenviar" : publishNow ? "Criar e publicar" : "Enviar para aprovação"}</button>
         <button type="button" onClick={onCancel} className="rounded-full border px-6 py-2.5 text-gray-700">Cancelar</button>
       </div>
     </form>

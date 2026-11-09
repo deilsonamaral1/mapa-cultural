@@ -1,35 +1,80 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Logo } from "@/components/SiteHeader";
-import { MAX_ANEXO_MB, cleanPerguntas, linkAnexo, uploadAnexo, type Anexo, type Formulario, type RespostaItem } from "@/lib/campo";
+import {
+  MAX_ANEXO_MB, cleanPerguntas, ehErroDeRede, linkAnexo, uploadAnexo, validarAnexo, visivel,
+  type Anexo, type Formulario, type RespostaItem,
+} from "@/lib/campo";
+import { listarPendentes, removerPendente, salvarPendente, type ItemPendente, type Pendente } from "@/lib/pendentes";
 import { errMsg, supabase } from "@/lib/supabase";
 
 type Valores = Record<string, string>;
+type Local = { name: string; type: string; file: File }; // arquivo escolhido que ainda não subiu (sem internet)
 
-/** Formulário de campo: o agente abre o link, responde (com fotos, áudio e vídeo) e toca em Salvar. Sem login. */
+const icone = (t: string) => (t === "link" ? "🔗" : t.startsWith("image/") ? "📷" : t.startsWith("audio/") ? "🎙️" : "🎬");
+
+/** Formulário de campo: o agente abre o link, responde (com fotos, áudio e vídeo) e toca em Salvar. Sem login. Funciona sem sinal. */
 export default function CampoPage() {
   const [form, setForm] = useState<Formulario | null>(null);
-  const [state, setState] = useState<"loading" | "ok" | "missing" | "sent">("loading");
+  const [state, setState] = useState<"loading" | "ok" | "missing" | "sent" | "queued">("loading");
   const [nome, setNome] = useState("");
   const [contato, setContato] = useState("");
   const [vals, setVals] = useState<Valores>({});
   const [anexos, setAnexos] = useState<Record<string, Anexo[]>>({});
+  const [locais, setLocais] = useState<Record<string, Local[]>>({});
   const [uploading, setUploading] = useState<string | null>(null);
   const [links, setLinks] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [fila, setFila] = useState(0);
+  const [enviandoFila, setEnviandoFila] = useState(false);
   const respId = useRef(crypto.randomUUID());
   const formId = useRef("");
+
+  /** Envia o que ficou guardado no aparelho (respostas feitas sem sinal). */
+  const esvaziarFila = useCallback(async () => {
+    if (typeof indexedDB === "undefined") return;
+    let lista: Pendente[] = [];
+    try {
+      lista = await listarPendentes();
+    } catch {
+      return;
+    }
+    setFila(lista.length);
+    if (!lista.length || !navigator.onLine) return;
+    setEnviandoFila(true);
+    for (const p of lista) {
+      try {
+        const respostas: Record<string, RespostaItem> = {};
+        for (const [qid, texto] of Object.entries(p.vals)) if (texto.trim()) respostas[qid] = { texto: texto.trim() };
+        for (const it of p.itens) {
+          const a: Anexo = it.file ? await uploadAnexo(p.formId, p.id, new File([it.file], it.name, { type: it.type })) : { path: it.path!, name: it.name, type: it.type };
+          const cur = respostas[it.qid] ?? {};
+          respostas[it.qid] = { ...cur, anexos: [...(cur.anexos ?? []), a] };
+        }
+        const r = await supabase.from("mc_respostas").insert({ id: p.id, form_id: p.formId, respondente: p.nome || null, contato: p.contato || null, respostas });
+        // 23505 = já tinha chegado antes (envio repetido): pode apagar do aparelho
+        if (!r.error || r.error.code === "23505") await removerPendente(p.id);
+      } catch {
+        /* sem sinal de novo: tenta na próxima vez */
+      }
+    }
+    try {
+      setFila((await listarPendentes()).length);
+    } catch {
+      /* ignora */
+    }
+    setEnviandoFila(false);
+  }, []);
 
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("f") ?? "";
     formId.current = id;
     if (!/^[0-9a-f-]{36}$/i.test(id)) return setState("missing");
-    supabase.rpc("mc_form_publico", { p_id: id }).then((r) => {
-      const row = Array.isArray(r.data) ? r.data[0] : null;
-      if (r.error || !row) return setState("missing");
-      setForm({ id: row.id, titulo: row.titulo, descricao: row.descricao, perguntas: cleanPerguntas(row.perguntas) });
+
+    const abrir = (f: Formulario) => {
+      setForm(f);
       setState("ok");
       try {
         const d = JSON.parse(localStorage.getItem(`mc-campo-${id}`) ?? "null");
@@ -41,8 +86,36 @@ export default function CampoPage() {
       } catch {
         /* sem rascunho */
       }
+    };
+    const guardado = (): Formulario | null => {
+      try {
+        return JSON.parse(localStorage.getItem(`mc-campo-form-${id}`) ?? "null");
+      } catch {
+        return null;
+      }
+    };
+
+    supabase.rpc("mc_form_publico", { p_id: id }).then((r) => {
+      const row = Array.isArray(r.data) ? r.data[0] : null;
+      if (row) {
+        const f: Formulario = { id: row.id, titulo: row.titulo, descricao: row.descricao, perguntas: cleanPerguntas(row.perguntas) };
+        try {
+          localStorage.setItem(`mc-campo-form-${id}`, JSON.stringify(f)); // para abrir mesmo sem sinal
+        } catch {
+          /* ignora */
+        }
+        return abrir(f);
+      }
+      // sem resposta do servidor: se foi falta de sinal, usa a cópia guardada; se o formulário foi encerrado, avisa
+      const g = guardado();
+      if (r.error && g) return abrir(g);
+      setState("missing");
     });
-  }, []);
+    esvaziarFila();
+    const volta = () => esvaziarFila();
+    window.addEventListener("online", volta);
+    return () => window.removeEventListener("online", volta);
+  }, [esvaziarFila]);
 
   // guarda o texto no aparelho: se a internet cair no campo, nada se perde
   useEffect(() => {
@@ -59,11 +132,16 @@ export default function CampoPage() {
     setError("");
     setUploading(qid);
     try {
-      const cur = anexos[qid] ?? [];
       for (const f of Array.from(files)) {
-        const a = await uploadAnexo(form.id, respId.current, f);
-        cur.push(a);
-        setAnexos((s) => ({ ...s, [qid]: [...cur] }));
+        validarAnexo(f); // tipo e tamanho: erro aqui não é falta de sinal
+        try {
+          if (!navigator.onLine) throw new TypeError("offline");
+          const a = await uploadAnexo(form.id, respId.current, f);
+          setAnexos((s) => ({ ...s, [qid]: [...(s[qid] ?? []), a] }));
+        } catch (err) {
+          if (!ehErroDeRede(err)) throw err;
+          setLocais((s) => ({ ...s, [qid]: [...(s[qid] ?? []), { name: f.name, type: f.type, file: f }] }));
+        }
       }
     } catch (err) {
       setError(errMsg(err));
@@ -85,33 +163,63 @@ export default function CampoPage() {
     if (!form) return;
     setError("");
     if (uploading) return setError("Aguarde o envio dos arquivos terminar.");
-    for (const q of form.perguntas) {
+    const vis = form.perguntas.filter((q) => visivel(q, vals));
+    for (const q of vis) {
       if (!q.obrigatoria) continue;
-      const ok = (anexos[q.id]?.length ?? 0) > 0 || (vals[q.id] ?? "").trim() !== "";
+      const ok = (anexos[q.id]?.length ?? 0) > 0 || (locais[q.id]?.length ?? 0) > 0 || (vals[q.id] ?? "").trim() !== "";
       if (!ok) return setError(`Responda: "${q.texto}"`);
     }
+
+    const visVals: Valores = {};
     const respostas: Record<string, RespostaItem> = {};
-    for (const q of form.perguntas) {
+    for (const q of vis) {
       const texto = (vals[q.id] ?? "").trim();
+      if (texto) visVals[q.id] = texto;
       const an = anexos[q.id] ?? [];
       if (texto || an.length) respostas[q.id] = { ...(texto ? { texto } : {}), ...(an.length ? { anexos: an } : {}) };
     }
+    const temLocal = vis.some((q) => (locais[q.id]?.length ?? 0) > 0);
+
+    async function guardarNoAparelho() {
+      const itens: ItemPendente[] = [];
+      for (const q of vis) {
+        for (const a of anexos[q.id] ?? []) itens.push({ qid: q.id, name: a.name, type: a.type, path: a.path });
+        for (const l of locais[q.id] ?? []) itens.push({ qid: q.id, name: l.name, type: l.type, file: l.file });
+      }
+      await salvarPendente({ id: respId.current, formId: form!.id, titulo: form!.titulo, nome: nome.trim(), contato: contato.trim(), vals: visVals, itens, salvoEm: Date.now() });
+    }
+
     setBusy(true);
-    const r = await supabase.from("mc_respostas").insert({
-      id: respId.current,
-      form_id: form.id,
-      respondente: nome.trim() || null,
-      contato: contato.trim() || null,
-      respostas,
-    });
-    setBusy(false);
-    if (r.error) return setError(`Não foi possível salvar: ${errMsg(r.error)}`);
     try {
-      localStorage.removeItem(`mc-campo-${form.id}`);
+      if (!temLocal && navigator.onLine) {
+        const r = await supabase.from("mc_respostas").insert({ id: respId.current, form_id: form.id, respondente: nome.trim() || null, contato: contato.trim() || null, respostas });
+        if (r.error) {
+          if (!ehErroDeRede(r.error)) throw r.error;
+          await guardarNoAparelho();
+          setFila((n) => n + 1);
+          return finalizar("queued");
+        }
+        return finalizar("sent");
+      }
+      // sem sinal (ou arquivos ainda no aparelho): guarda tudo e envia quando voltar
+      await guardarNoAparelho();
+      setFila((n) => n + 1);
+      finalizar("queued");
+      esvaziarFila();
+    } catch (err) {
+      setError(`Não foi possível salvar: ${errMsg(err)}`);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function finalizar(s: "sent" | "queued") {
+    try {
+      localStorage.removeItem(`mc-campo-${formId.current}`);
     } catch {
       /* ignora */
     }
-    setState("sent");
+    setState(s);
   }
 
   function again() {
@@ -120,13 +228,21 @@ export default function CampoPage() {
     setContato("");
     setVals({});
     setAnexos({});
+    setLocais({});
     setState("ok");
   }
 
   return (
     <div className="min-h-screen bg-cal pb-16">
       <header className="border-b border-slate-200 bg-white px-4 py-3"><div className="mx-auto max-w-xl"><Logo /></div></header>
-      <main className="mx-auto max-w-xl px-4 py-6">
+      <main className="mx-auto max-w-xl space-y-4 px-4 py-6">
+        {fila > 0 && (
+          <div role="status" className="flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            <span>{fila} resposta(s) guardada(s) neste aparelho, aguardando sinal para enviar.</span>
+            <button type="button" onClick={esvaziarFila} disabled={enviandoFila} className="shrink-0 rounded-full bg-amber-600 px-4 py-2 font-semibold text-white disabled:opacity-50">{enviandoFila ? "Enviando…" : "Enviar agora"}</button>
+          </div>
+        )}
+
         {state === "loading" && <p className="text-slate-500">Carregando…</p>}
         {state === "missing" && (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-center">
@@ -142,6 +258,14 @@ export default function CampoPage() {
             <button onClick={again} className="mt-5 rounded-full border border-slate-300 px-6 py-3 font-semibold text-slate-700">Responder de novo</button>
           </div>
         )}
+        {state === "queued" && (
+          <div className="rounded-2xl border border-amber-200 bg-white p-6 text-center">
+            <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-amber-100 text-3xl text-amber-700">📥</span>
+            <h1 className="mt-3 font-display text-2xl font-semibold">Guardado no aparelho</h1>
+            <p className="mt-2 text-slate-600">Sem sinal agora. Nada se perdeu: assim que a internet voltar, abra este mesmo link de novo e a resposta é enviada sozinha.</p>
+            <button onClick={again} className="mt-5 rounded-full border border-slate-300 px-6 py-3 font-semibold text-slate-700">Fazer outra resposta</button>
+          </div>
+        )}
 
         {state === "ok" && form && (
           <form onSubmit={save} className="space-y-5">
@@ -155,12 +279,21 @@ export default function CampoPage() {
               <div><label>Telefone ou e-mail (opcional)<input value={contato} onChange={(e) => setContato(e.target.value)} autoComplete="off" /></label></div>
             </div>
 
-            {form.perguntas.map((q, i) => (
+            {form.perguntas.filter((q) => visivel(q, vals)).map((q, i) => (
               <div key={q.id} className="space-y-2 rounded-2xl border border-slate-200 bg-white p-4">
                 <p className="font-medium text-slate-900">{i + 1}. {q.texto}{q.obrigatoria && <span className="text-red-600"> *</span>}</p>
 
                 {q.tipo === "texto" && <input value={vals[q.id] ?? ""} onChange={(e) => setVals((v) => ({ ...v, [q.id]: e.target.value }))} aria-label={q.texto} />}
                 {q.tipo === "longo" && <textarea rows={5} value={vals[q.id] ?? ""} onChange={(e) => setVals((v) => ({ ...v, [q.id]: e.target.value }))} aria-label={q.texto} />}
+                {q.tipo === "data" && <input type="date" value={vals[q.id] ?? ""} onChange={(e) => setVals((v) => ({ ...v, [q.id]: e.target.value }))} aria-label={q.texto} />}
+                {q.tipo === "escala" && (
+                  <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label={q.texto}>
+                    {["1", "2", "3", "4", "5"].map((n) => (
+                      <button key={n} type="button" role="radio" aria-checked={vals[q.id] === n} onClick={() => setVals((v) => ({ ...v, [q.id]: n }))}
+                        className={`rounded-xl border py-3 text-lg font-semibold ${vals[q.id] === n ? "border-sea bg-sea text-white" : "border-slate-300 bg-white text-slate-700"}`}>{n}</button>
+                    ))}
+                  </div>
+                )}
                 {q.tipo === "escolha" && (
                   <div className="space-y-2">
                     {(q.opcoes ?? []).map((o) => (
@@ -171,18 +304,25 @@ export default function CampoPage() {
                     ))}
                   </div>
                 )}
+
                 <div className="space-y-2 border-t border-slate-100 pt-3">
                   {(anexos[q.id] ?? []).map((a) => (
                     <div key={a.path} className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-sm">
-                      <span className="truncate">{a.type === "link" ? "🔗" : a.type.startsWith("image/") ? "📷" : a.type.startsWith("audio/") ? "🎙️" : "🎬"} {a.name}</span>
+                      <span className="truncate">{icone(a.type)} {a.name}</span>
                       <button type="button" aria-label="Remover" onClick={() => setAnexos((s) => ({ ...s, [q.id]: (s[q.id] ?? []).filter((x) => x.path !== a.path) }))} className="grid h-9 w-9 shrink-0 place-items-center text-slate-500">×</button>
+                    </div>
+                  ))}
+                  {(locais[q.id] ?? []).map((l, k) => (
+                    <div key={`${l.name}-${k}`} className="flex items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm">
+                      <span className="truncate">{icone(l.type)} {l.name} <em className="text-amber-700">(no aparelho, sobe com sinal)</em></span>
+                      <button type="button" aria-label="Remover" onClick={() => setLocais((s) => ({ ...s, [q.id]: (s[q.id] ?? []).filter((_, j) => j !== k) }))} className="grid h-9 w-9 shrink-0 place-items-center text-slate-500">×</button>
                     </div>
                   ))}
                   <p className="text-xs font-medium text-slate-500">{uploading === q.id ? "Enviando… não feche a página" : "Quer mostrar também? Adicione:"}</p>
                   <div className="grid grid-cols-3 gap-2">
-                    {([["📷", "Foto", "image/*"], ["🎙️", "Áudio", "audio/*"], ["🎬", "Vídeo", "video/*"]] as const).map(([ico, nome, accept]) => (
-                      <label key={nome} className={`flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-300 bg-white px-2 py-3 text-sm font-semibold text-slate-700 active:bg-slate-50 ${uploading ? "opacity-50" : ""}`}>
-                        <span className="text-xl" aria-hidden="true">{ico}</span>{nome}
+                    {([["📷", "Foto", "image/*"], ["🎙️", "Áudio", "audio/*"], ["🎬", "Vídeo", "video/*"]] as const).map(([ico, nm, accept]) => (
+                      <label key={nm} className={`flex cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border border-slate-300 bg-white px-2 py-3 text-sm font-semibold text-slate-700 active:bg-slate-50 ${uploading ? "opacity-50" : ""}`}>
+                        <span className="text-xl" aria-hidden="true">{ico}</span>{nm}
                         <input type="file" multiple accept={accept} className="sr-only" disabled={!!uploading}
                           onChange={(e) => { addFiles(q.id, e.target.files); e.target.value = ""; }} />
                       </label>
@@ -190,7 +330,7 @@ export default function CampoPage() {
                   </div>
                   <div className="flex gap-2">
                     <input value={links[q.id] ?? ""} onChange={(e) => setLinks((l) => ({ ...l, [q.id]: e.target.value }))} placeholder="Ou cole um link (YouTube, Drive…)" aria-label="Link de vídeo ou áudio"
-                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addLink(q.id); } }} />
+                      onKeyDown={(ev) => { if (ev.key === "Enter") { ev.preventDefault(); addLink(q.id); } }} />
                     <button type="button" onClick={() => addLink(q.id)} className="shrink-0 rounded-xl border border-slate-300 px-4 font-semibold">Adicionar</button>
                   </div>
                   <p className="text-xs text-slate-500">Arquivos de até {MAX_ANEXO_MB} MB cada. Vídeo maior? Envie para o YouTube (como "não listado") ou Google Drive e cole o link acima.</p>
@@ -202,7 +342,7 @@ export default function CampoPage() {
             <button disabled={busy || !!uploading} className="w-full rounded-full bg-sea px-6 py-4 text-lg font-semibold text-white shadow-lift disabled:opacity-50">
               {busy ? "Salvando…" : uploading ? "Enviando arquivos…" : "Salvar e enviar"}
             </button>
-            <p className="text-center text-xs text-slate-500">O que você escreve fica guardado neste aparelho até você enviar.</p>
+            <p className="text-center text-xs text-slate-500">Sem sinal? Toque em Salvar mesmo assim: a resposta fica neste aparelho e é enviada quando a internet voltar.</p>
           </form>
         )}
       </main>
