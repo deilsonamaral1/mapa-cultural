@@ -46,6 +46,10 @@ Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa 
 
 **Formulários de campo.** Rode o `supabase/campo.sql`. Em Administração → Formulários de campo, o administrador cria perguntas (resposta curta, longa, escolha ou só anexos); em qualquer tipo o agente também pode juntar fotos, áudios, vídeos e links, copia o link ou manda por WhatsApp e recebe as respostas ali mesmo. O agente abre `/campo?f=…` sem criar conta, responde e toca em *Salvar e enviar*; o texto fica guardado no aparelho até enviar. Os anexos vão para um espaço **privado** (`mc-campo`, 50 MB por arquivo) que só o administrador abre. Encerrar o formulário bloqueia novos envios.
 
+**Backup e "pausa" do Supabase.** Dois robôs grátis do GitHub Actions (pasta `.github/workflows`):
+- `keepalive.yml`: uma consulta pública por dia, para o projeto não ser pausado por inatividade. Não precisa de configuração.
+- `backup.yml`: toda segunda-feira exporta as tabelas `mc_*` para um arquivo **criptografado** (o repositório é público), guardado 90 dias em *Actions → execução → Artifacts*. Para ligar, crie dois segredos em *Settings → Secrets and variables → Actions → New repository secret*: `SUPABASE_SERVICE_KEY` (a chave secreta do Supabase, só aqui) e `BACKUP_PASSPHRASE` (uma senha longa que você inventa e guarda). Para abrir um backup: `openssl enc -d -aes-256-cbc -pbkdf2 -in backup-AAAA-MM-DD.json.gz.enc -out backup.json.gz` e depois `gunzip backup.json.gz`. Os arquivos de foto, áudio e vídeo (Storage) **não** entram nesse backup, só os dados das tabelas.
+
 **Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
 (depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração
 precisa tirá-lo do mapa em `/admin`. No plano grátis o Supabase pausa o projeto após cerca de 7 dias sem uso
