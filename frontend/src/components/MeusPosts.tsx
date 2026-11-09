@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import PostForm from "@/components/PostForm";
-import { POST_ALL_COLS, POST_KINDS, rowToPost, type Post, type PostStatus } from "@/lib/posts";
+import { POST_STAFF_COLS, POST_KINDS, rowToPost, type Post, type PostStatus } from "@/lib/posts";
 import { errMsg, supabase } from "@/lib/supabase";
 
 const STATUS: Record<PostStatus, { label: string; cls: string }> = {
@@ -20,7 +20,7 @@ export default function MeusPosts({ userId, userName, isAdmin }: { userId: strin
 
   const load = useCallback(async () => {
     setBusy(true);
-    const r = await supabase.from("mc_posts").select(POST_ALL_COLS).eq("author_id", userId).order("created_at", { ascending: false }).limit(100);
+    const r = await supabase.from("mc_posts").select(POST_STAFF_COLS).eq("author_id", userId).order("created_at", { ascending: false }).limit(100);
     if (r.error) setError(`Ao carregar suas publicações: ${errMsg(r.error)}`);
     else {
       setList((r.data ?? []).map(rowToPost));
@@ -69,6 +69,7 @@ export default function MeusPosts({ userId, userName, isAdmin }: { userId: strin
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-medium ${STATUS[p.status].cls}`}>{STATUS[p.status].label}</span>
             </div>
+            {p.status !== "pending" && p.reviewedByName && <p className="mt-1 text-xs text-slate-500">{p.status === "published" ? "Aprovado" : "Não aprovado"} por {p.reviewedByName}{p.reviewedAt ? ` em ${new Date(p.reviewedAt).toLocaleDateString("pt-BR")}` : ""}</p>}
             {p.status === "rejected" && p.note && <p className="mt-2 rounded bg-red-50 p-2 text-sm text-red-700"><strong>Motivo:</strong> {p.note}</p>}
             <div className="mt-3 flex gap-3 text-sm">
               {(isAdmin || p.status !== "published") && <button onClick={() => setEditing(p)} className="font-medium text-brand-dark hover:underline">Editar</button>}

@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/Icon";
+import RoleBadge from "@/components/RoleBadge";
 import SiteHeader from "@/components/SiteHeader";
 import { T, errMsg, publicData, rowToSubmission, supabase, type EntryStatus, type Submission } from "@/lib/supabase";
 import { KINDS, fmtDate } from "@/lib/mapas";
+import Numeros from "@/components/Numeros";
+import { baixarCsv } from "@/lib/csv";
 import { useUser } from "@/lib/useUser";
 import AdminPosts from "@/components/AdminPosts";
 import CampoAdmin from "@/components/CampoAdmin";
@@ -20,17 +23,17 @@ const TABS: { key: EntryStatus; label: string }[] = [
 ];
 
 export default function AdminPage() {
-  const { user, loading, isAdmin } = useUser();
+  const { user, loading, isAdmin, isStaff, papel } = useUser();
   const [tab, setTab] = useState<EntryStatus>("pending");
   const [list, setList] = useState<Submission[]>([]);
   const [counts, setCounts] = useState<Record<EntryStatus, number>>({ pending: 0, approved: 0, rejected: 0 });
   const [busy, setBusy] = useState(true);
   const [working, setWorking] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"aprovacoes" | "textos" | "campo" | "equipe">("aprovacoes");
+  const [view, setView] = useState<"aprovacoes" | "textos" | "campo" | "numeros" | "equipe">("aprovacoes");
 
   const load = useCallback(async () => {
-    if (!isAdmin) return;
+    if (!isStaff) return;
     setBusy(true);
     try {
       const count = (st: EntryStatus) => supabase.from(T.cadastros).select("id", { count: "exact", head: true }).eq("status", st);
@@ -49,11 +52,13 @@ export default function AdminPage() {
     } finally {
       setBusy(false);
     }
-  }, [isAdmin, tab]);
+  }, [isStaff, tab]);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const quem = () => ({ reviewed_by: user!.id, reviewed_by_name: user!.name || user!.email.split("@")[0], reviewed_at: new Date().toISOString() });
 
   /** Aprovar = publicar (documento público com o MESMO id do envio) e marcar o envio como aprovado. */
   async function approve(s: Submission) {
@@ -62,7 +67,7 @@ export default function AdminPage() {
     try {
       const pub = await supabase.from(T.publicados).upsert({ id: s.id, kind: s.kind, data: publicData(s as never) });
       if (pub.error) throw pub.error;
-      const up = await supabase.from(T.cadastros).update({ status: "approved", note: null }).eq("id", s.id);
+      const up = await supabase.from(T.cadastros).update({ status: "approved", note: null, ...quem() }).eq("id", s.id);
       if (up.error) throw up.error;
       await load();
     } catch (e) {
@@ -78,7 +83,7 @@ export default function AdminPage() {
     try {
       const del = await supabase.from(T.publicados).delete().eq("id", s.id);
       if (del.error) throw del.error;
-      const up = await supabase.from(T.cadastros).update({ status: to, note }).eq("id", s.id);
+      const up = await supabase.from(T.cadastros).update({ status: to, note, ...quem() }).eq("id", s.id);
       if (up.error) throw up.error;
       await load();
     } catch (e) {
@@ -86,6 +91,20 @@ export default function AdminPage() {
     } finally {
       setWorking(null);
     }
+  }
+
+  async function exportar() {
+    const r = await supabase.from(T.cadastros).select("*").order("created_at", { ascending: false }).limit(5000);
+    if (r.error) return setError(errMsg(r.error));
+    const L = (r.data ?? []).map(rowToSubmission);
+    baixarCsv(`cadastros-${new Date().toISOString().slice(0, 10)}.csv`, [
+      ["Situação", "Tipo", "Nome", "Resumo", "Descrição", "Subtipo", "Áreas", "Endereço", "Cidade", "Local", "Início", "Fim", "Latitude", "Longitude", "Site", "Contato", "Enviado por", "Enviado em", "Decidido por", "Decidido em", "Motivo"],
+      ...L.map((s) => [
+        s.status === "approved" ? "Aprovado" : s.status === "rejected" ? "Rejeitado" : "Pendente", KINDS[s.kind]?.label ?? s.kind, s.name, s.shortDescription, s.longDescription, s.type,
+        (s.areas ?? []).join(", "), s.address, s.city, s.place, s.startsAt, s.endsAt, s.lat, s.lng, s.site, s.contact, s.ownerName,
+        new Date(s.createdAt).toLocaleString("pt-BR"), s.reviewedByName, s.reviewedAt ? new Date(s.reviewedAt).toLocaleString("pt-BR") : "", s.note,
+      ]),
+    ]);
   }
 
   function reject(s: Submission) {
@@ -109,7 +128,7 @@ export default function AdminPage() {
           </div>
         )}
 
-        {!loading && user && !isAdmin && (
+        {!loading && user && !isStaff && (
           <div className="mx-auto max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-6">
             <h1 className="font-display text-lg font-semibold text-amber-900">Esta conta não tem acesso de administração</h1>
             <p className="mt-2 text-sm text-amber-900/80">
@@ -121,11 +140,11 @@ export default function AdminPage() {
           </div>
         )}
 
-        {isAdmin && (
+        {isStaff && (
           <>
-            <h1 className="text-2xl font-bold">Administração</h1>
+            <div className="flex flex-wrap items-center gap-2"><h1 className="text-2xl font-bold">Administração</h1><RoleBadge papel={papel} /></div>
             <div className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto border-b border-slate-200 px-4" role="tablist" aria-label="Seções">
-              {([["aprovacoes", "Cadastros"], ["textos", "Blog e podcast"], ["campo", "Formulários de campo"], ["equipe", "Equipe"]] as const).map(([k, l]) => (
+              {([["aprovacoes", "Cadastros"], ["textos", "Blog e podcast"], ["campo", "Formulários de campo"], ["numeros", "Números"], ["equipe", "Equipe"]] as const).filter(([k]) => isAdmin || k === "aprovacoes" || k === "textos" || k === "numeros").map(([k, l]) => (
                 <button key={k} role="tab" aria-selected={view === k} onClick={() => setView(k)}
                   className={`-mb-px shrink-0 border-b-2 px-4 py-3 text-sm font-semibold ${view === k ? "border-sea text-sea" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
                   {l}
@@ -134,10 +153,12 @@ export default function AdminPage() {
             </div>
 
             {view === "equipe" && <Equipe meId={user!.id} />}
-            {view === "textos" && <AdminPosts />}
+            {view === "textos" && <AdminPosts reviewer={{ id: user!.id, name: user!.name || user!.email.split("@")[0] }} />}
+            {view === "numeros" && <Numeros isAdmin={isAdmin} />}
             {view === "campo" && <CampoAdmin userId={user!.id} />}
 
             {view === "aprovacoes" && (<>
+            <div className="flex justify-end"><button onClick={exportar} className="rounded-full border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Exportar tudo (planilha .csv)</button></div>
             <div className="flex gap-1 rounded-lg bg-brand-soft p-1" role="tablist">
               {TABS.map((t) => (
                 <button key={t.key} role="tab" aria-selected={tab === t.key} onClick={() => setTab(t.key)}
@@ -156,6 +177,7 @@ export default function AdminPage() {
                 <li key={s.id} className="rounded-xl border bg-white p-4 shadow-sm">
                   <div className="text-xs font-semibold" style={{ color: KINDS[s.kind].color }}>{KINDS[s.kind].label}</div>
                   <h2 className="text-lg font-semibold leading-snug">{s.name}</h2>
+                  {s.status !== "pending" && s.reviewedByName && <p className="text-xs text-slate-500">{s.status === "approved" ? "Aprovado" : "Rejeitado"} por {s.reviewedByName}{s.reviewedAt ? ` em ${new Date(s.reviewedAt).toLocaleDateString("pt-BR")}` : ""}</p>}
                   <p className="text-xs text-gray-500">Enviado por {s.ownerName || "—"} em {new Date(s.createdAt).toLocaleDateString("pt-BR")}</p>
                   <p className="mt-2 text-sm text-gray-700">{s.shortDescription}</p>
                   <div className="mt-3 max-w-md"><Media photos={photoUrls(s.photos)} videos={s.videos} /></div>

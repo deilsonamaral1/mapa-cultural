@@ -45,6 +45,8 @@ export type Submission = EntryData & {
   ownerName?: string | null;
   status: EntryStatus;
   note?: string | null;
+  reviewedByName?: string | null;
+  reviewedAt?: string | null;
 };
 
 /** Só estes campos vão para a tabela pública (nada de dono, status ou nota interna). */
@@ -82,6 +84,8 @@ export function rowToSubmission(row: any): Submission {
     ownerId: row.owner_id,
     status: row.status,
     note: row.note ?? null,
+    reviewedByName: row.reviewed_by_name ?? null,
+    reviewedAt: row.reviewed_at ?? null,
   } as Submission;
 }
 
@@ -100,6 +104,8 @@ export function errMsg(e: unknown): string {
   if (/already registered|already been registered/i.test(m)) return "Este e-mail já está cadastrado. Tente entrar.";
   if (/rate limit|too many/i.test(m) || x?.status === 429) return "Muitas tentativas. Aguarde um pouco e tente de novo.";
   if (/password/i.test(m) && /(least|weak|short)/i.test(m)) return "A senha deve ter pelo menos 8 caracteres.";
+  if (x?.code === "PGRST204" || /could not find the .* column/i.test(m))
+    return "Falta atualizar o banco. Rode o arquivo supabase/equipe.sql no SQL Editor do Supabase.";
   if (x?.code === "42P01" || x?.code === "PGRST205" || /could not find the table|does not exist/i.test(m))
     return /mc_posts/.test(m) ? "O blog e o podcast ainda não foram criados no Supabase. Rode o arquivo supabase/blog.sql no SQL Editor."
       : /mc_formularios|mc_respostas|mc_form_publico/.test(m) ? "Os formulários de campo ainda não foram criados no Supabase. Rode o arquivo supabase/campo.sql no SQL Editor."

@@ -52,6 +52,8 @@ Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa 
 
 **Alcance e compartilhamento.** Cada cadastro, evento e texto tem endereço próprio (`/ver/…`, `/oficial/aquiraz/event/123`, `/leitura/…`), com título e imagem para pré-visualização no WhatsApp e no Google (`sitemap.xml` e `robots.txt` automáticos). `/busca` procura em tudo de uma vez; botões de compartilhar, WhatsApp, salvar (`/favoritos`, só no aparelho) e agenda (Google Agenda e .ics). O site é instalável no celular (PWA) e páginas já visitadas abrem sem internet. Opcional no Netlify: `NEXT_PUBLIC_SITE_URL` com o endereço final (para o sitemap e as pré-visualizações).
 
+**Equipe.** Rode também o `supabase/equipe.sql`. Há três papéis: *agente* (padrão), *moderador* (aprova cadastros e textos do blog e vê os números) e *administrador* (tudo, inclusive Equipe e Formulários de campo). Em Administração → Equipe o administrador adiciona, troca o papel ou remove pessoas pelo e-mail. Cada decisão guarda quem aprovou ou rejeitou e quando; o botão de Administração no topo mostra quantos itens esperam aprovação. Dá para exportar cadastros e respostas dos formulários para planilha (CSV) e há uma aba **Números**.
+
 **Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
 (depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração
 precisa tirá-lo do mapa em `/admin`. No plano grátis o Supabase pausa o projeto após cerca de 7 dias sem uso

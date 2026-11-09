@@ -5,6 +5,7 @@ import {
   TIPOS, campoLink, cleanPerguntas, normResp, signedUrls,
   type Anexo, type Formulario, type Pergunta, type PerguntaTipo, type Resposta,
 } from "@/lib/campo";
+import { baixarCsv } from "@/lib/csv";
 import { errMsg, supabase } from "@/lib/supabase";
 import { youtubeId } from "@/lib/youtube";
 
@@ -208,6 +209,20 @@ function Respostas({ form, onBack }: { form: Linha; onBack: () => void }) {
     else load();
   }
 
+  function exportar() {
+    baixarCsv(`respostas-${form.titulo.replace(/[^\w]+/g, "-").slice(0, 40)}.csv`, [
+      ["Data", "Nome", "Contato", ...form.perguntas.map((q) => q.texto)],
+      ...list.map((x) => [
+        new Date(x.created_at).toLocaleString("pt-BR"), x.respondente, x.contato,
+        ...form.perguntas.map((q) => {
+          const v = normResp(x.respostas?.[q.id]);
+          const an = (v.anexos ?? []).map((a) => (a.type === "link" ? a.path : `[${a.type.split("/")[0]}: ${a.name}]`)).join(" ");
+          return [v.texto, an].filter(Boolean).join(" ");
+        }),
+      ]),
+    ]);
+  }
+
   const Anexos = ({ items }: { items: Anexo[] }) => (
     <ul className="grid gap-2 sm:grid-cols-2">
       {items.map((a) => {
@@ -238,7 +253,7 @@ function Respostas({ form, onBack }: { form: Linha; onBack: () => void }) {
   return (
     <section className="space-y-4">
       <button onClick={onBack} className="text-sm font-medium text-brand hover:underline">← Voltar</button>
-      <h2 className="font-display text-xl font-bold">{form.titulo}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-display text-xl font-bold">{form.titulo}</h2>{list.length > 0 && <button onClick={exportar} className="rounded-full border px-4 py-2 text-sm font-semibold hover:bg-slate-50">Exportar (planilha .csv)</button>}</div>
       {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {busy && <p className="text-gray-500">Carregando…</p>}
       {!busy && list.length === 0 && <p className="rounded-lg border border-dashed bg-white p-6 text-center text-gray-500">Ainda não chegou nenhuma resposta.</p>}

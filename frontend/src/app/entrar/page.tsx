@@ -21,7 +21,7 @@ export default function EntrarPage() {
       const { data, error: err } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
       if (err) throw err;
       const p = await supabase.from(T.perfis).select("papel").eq("id", data.user.id).maybeSingle();
-      router.replace(p.data?.papel === "admin" ? "/admin" : "/painel");
+      router.replace(p.data?.papel === "admin" || p.data?.papel === "moderador" ? "/admin" : "/painel");
     } catch (err) {
       setError(errMsg(err));
     } finally {

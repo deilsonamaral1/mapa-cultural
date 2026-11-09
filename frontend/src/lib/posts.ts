@@ -24,11 +24,15 @@ export type Post = {
   authorName: string | null;
   createdAt: string;
   publishedAt: string | null;
+  reviewedByName: string | null;
+  reviewedAt: string | null;
 };
 
 /** Colunas da lista (sem o texto inteiro, que pode ser grande). */
 export const POST_LIST_COLS = "id, kind, title, summary, cover, audio, embed, status, note, author_id, author_name, created_at, published_at";
 export const POST_ALL_COLS = `${POST_LIST_COLS}, body`;
+/** Só nas telas da equipe e do autor (exige o equipe.sql rodado). */
+export const POST_STAFF_COLS = `${POST_ALL_COLS}, reviewed_by_name, reviewed_at`;
 
 export function rowToPost(r: any): Post {
   return {
@@ -46,6 +50,8 @@ export function rowToPost(r: any): Post {
     authorName: r.author_name ?? null,
     createdAt: r.created_at,
     publishedAt: r.published_at ?? null,
+    reviewedByName: r.reviewed_by_name ?? null,
+    reviewedAt: r.reviewed_at ?? null,
   };
 }
 

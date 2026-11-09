@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
 import Icon from "@/components/Icon";
 import RoleBadge from "@/components/RoleBadge";
 import { KINDS, KIND_ORDER, type Kind } from "@/lib/mapas";
@@ -25,7 +26,8 @@ export function Logo({ light = false }: { light?: boolean }) {
 }
 
 export default function SiteHeader() {
-  const { user, loading, isAdmin, logout } = useUser();
+  const { user, loading, isStaff, logout } = useUser();
+  const [pendentes, setPendentes] = useState(0);
   const [tab, setTab] = useState<Kind | null>(null);
   const [onMapa, setOnMapa] = useState(false);
 
@@ -36,6 +38,15 @@ export default function SiteHeader() {
     const t = new URLSearchParams(window.location.search).get("tab") as Kind | null;
     setTab(t && t in KINDS ? t : "event");
   }, []);
+
+  // equipe: número de cadastros e textos esperando aprovação
+  useEffect(() => {
+    if (!isStaff) return;
+    Promise.all([
+      supabase.from("mc_cadastros").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("mc_posts").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    ]).then(([a, b]) => setPendentes((a.count ?? 0) + (b.count ?? 0)));
+  }, [isStaff]);
 
   const nav = (
     <>
@@ -80,13 +91,14 @@ export default function SiteHeader() {
           </Link>
           {!loading && user && (
             <>
-              {isAdmin && (
-                <Link href="/admin" aria-label="Administração" className="flex items-center gap-1.5 rounded-full bg-sun/15 px-3 py-2 text-sun-dark hover:bg-sun/25 sm:px-3.5">
+              {isStaff && (
+                <Link href="/admin" aria-label={pendentes ? `Administração, ${pendentes} pendente(s)` : "Administração"} className="relative flex items-center gap-1.5 rounded-full bg-sun/15 px-3 py-2 text-sun-dark hover:bg-sun/25 sm:px-3.5">
                   <Icon name="shield" className="h-[18px] w-[18px]" />
                   <span className="hidden sm:inline">Administração</span>
+                  {pendentes > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[11px] font-bold leading-none text-white">{pendentes > 99 ? "99+" : pendentes}</span>}
                 </Link>
               )}
-              {!isAdmin && <RoleBadge admin={false} className="hidden md:inline-flex" />}
+              {!isStaff && <RoleBadge papel="agente" className="hidden md:inline-flex" />}
               <Link href="/painel" aria-label="Meu painel" className="flex items-center gap-1.5 rounded-full bg-sea px-3 py-2 text-white hover:bg-sea-deep sm:px-3.5">
                 <Icon name="panel" className="h-[18px] w-[18px]" />
                 <span className="hidden sm:inline">Meu painel</span>

@@ -17,7 +17,7 @@ const STATUS: Record<EntryStatus, { label: string; cls: string }> = {
 };
 
 export default function PainelPage() {
-  const { user, loading, isAdmin } = useUser();
+  const { user, loading, isAdmin, isStaff, papel } = useUser();
   const [list, setList] = useState<Submission[]>([]);
   const [busy, setBusy] = useState(true);
   const [error, setError] = useState("");
@@ -72,15 +72,15 @@ export default function PainelPage() {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h1 className="text-2xl font-bold">Meu painel</h1>
-                  <RoleBadge admin={isAdmin} />
+                  <RoleBadge papel={papel} />
                 </div>
                 <p className="mt-1 text-sm text-slate-600">
                   Olá, {user.name || user.email}.{" "}
-                  {isAdmin
-                    ? "Você é administrador: aprova os cadastros da equipe e também pode enviar os seus."
+                  {isStaff
+                    ? `Você é ${papel === "admin" ? "administrador" : "moderador"}: aprova os cadastros da equipe e também pode enviar os seus.`
                     : "Você é agente: tudo que enviar é revisado pela equipe antes de aparecer no mapa."}
                 </p>
-                {isAdmin && (
+                {isStaff && (
                   <Link href="/admin" className="mt-2 inline-flex rounded-full bg-sun/15 px-4 py-2 text-sm font-semibold text-sun-dark hover:bg-sun/25">
                     Ir para a Administração
                   </Link>
@@ -127,7 +127,7 @@ export default function PainelPage() {
               ))}
             </ul>
 
-            <MeusPosts userId={user.id} userName={user.name || user.email.split("@")[0]} isAdmin={isAdmin} />
+            <MeusPosts userId={user.id} userName={user.name || user.email.split("@")[0]} isAdmin={isStaff} />
           </>
         )}
       </main>

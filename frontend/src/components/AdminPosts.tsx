@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import PostPlayer from "@/components/PostPlayer";
-import { POST_ALL_COLS, POST_KINDS, rowToPost, type Post, type PostStatus } from "@/lib/posts";
+import { POST_STAFF_COLS, POST_KINDS, rowToPost, type Post, type PostStatus } from "@/lib/posts";
 import { errMsg, supabase } from "@/lib/supabase";
 
 const TABS: { key: PostStatus; label: string }[] = [
@@ -12,7 +12,7 @@ const TABS: { key: PostStatus; label: string }[] = [
 ];
 
 /** Aprovação de textos e episódios enviados pelos agentes. */
-export default function AdminPosts() {
+export default function AdminPosts({ reviewer }: { reviewer: { id: string; name: string } }) {
   const [tab, setTab] = useState<PostStatus>("pending");
   const [list, setList] = useState<Post[]>([]);
   const [busy, setBusy] = useState(true);
@@ -21,7 +21,7 @@ export default function AdminPosts() {
 
   const load = useCallback(async () => {
     setBusy(true);
-    const r = await supabase.from("mc_posts").select(POST_ALL_COLS).eq("status", tab).order("created_at", { ascending: false }).limit(100);
+    const r = await supabase.from("mc_posts").select(POST_STAFF_COLS).eq("status", tab).order("created_at", { ascending: false }).limit(100);
     if (r.error) setError(errMsg(r.error));
     else {
       setList((r.data ?? []).map(rowToPost));
@@ -37,7 +37,7 @@ export default function AdminPosts() {
   async function setStatus(p: Post, status: PostStatus, note: string | null = null) {
     setWorking(p.id);
     setError("");
-    const patch: Record<string, unknown> = { status, note };
+    const patch: Record<string, unknown> = { status, note, reviewed_by: reviewer.id, reviewed_by_name: reviewer.name, reviewed_at: new Date().toISOString() };
     if (status === "published") patch.published_at = new Date().toISOString();
     const r = await supabase.from("mc_posts").update(patch).eq("id", p.id);
     if (r.error) setError(errMsg(r.error));
@@ -77,6 +77,7 @@ export default function AdminPosts() {
             )}
             <div className="mt-2 max-w-md"><PostPlayer audio={p.audio} embed={p.embed} /></div>
             {p.body && <details className="mt-2 text-sm"><summary className="cursor-pointer font-medium text-brand">Ler o texto</summary><div className="mt-2 whitespace-pre-line text-gray-700">{p.body}</div></details>}
+            {p.status !== "pending" && p.reviewedByName && <p className="mt-1 text-xs text-slate-500">{p.status === "published" ? "Aprovado" : "Rejeitado"} por {p.reviewedByName}{p.reviewedAt ? ` em ${new Date(p.reviewedAt).toLocaleDateString("pt-BR")}` : ""}</p>}
             {p.status === "rejected" && p.note && <p className="mt-2 rounded bg-red-50 p-2 text-sm text-red-700"><strong>Motivo:</strong> {p.note}</p>}
             <div className="mt-3 flex flex-wrap gap-2">
               {p.status !== "published" && <button disabled={working === p.id} onClick={() => setStatus(p, "published")} className="rounded-full bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">Aprovar e publicar</button>}
