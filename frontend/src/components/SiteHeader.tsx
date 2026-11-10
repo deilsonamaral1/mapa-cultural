@@ -28,6 +28,7 @@ export function Logo({ light = false }: { light?: boolean }) {
 export default function SiteHeader() {
   const { user, loading, isStaff, logout } = useUser();
   const [pendentes, setPendentes] = useState(0);
+  const [formsNovos, setFormsNovos] = useState(0);
   const [tab, setTab] = useState<Kind | null>(null);
   const [onMapa, setOnMapa] = useState(false);
 
@@ -47,6 +48,14 @@ export default function SiteHeader() {
       supabase.from("mc_posts").select("id", { count: "exact", head: true }).eq("status", "pending"),
     ]).then(([a, b]) => setPendentes((a.count ?? 0) + (b.count ?? 0)));
   }, [isStaff]);
+
+  // agente: formulários enviados pela equipe que ainda não foram respondidos
+  useEffect(() => {
+    if (!user) return;
+    supabase.rpc("mc_meus_formularios").then((r) => {
+      if (!r.error) setFormsNovos(((r.data ?? []) as { respondido: boolean }[]).filter((f) => !f.respondido).length);
+    });
+  }, [user]);
 
   const nav = (
     <>
@@ -99,9 +108,10 @@ export default function SiteHeader() {
                 </Link>
               )}
               {!isStaff && <RoleBadge papel="agente" className="hidden md:inline-flex" />}
-              <Link href="/painel" aria-label="Meu painel" className="flex items-center gap-1.5 rounded-full bg-sea px-3 py-2 text-white hover:bg-sea-deep sm:px-3.5">
+              <Link href="/painel" aria-label={formsNovos ? `Meu painel, ${formsNovos} formulário(s) novo(s)` : "Meu painel"} className="relative flex items-center gap-1.5 rounded-full bg-sea px-3 py-2 text-white hover:bg-sea-deep sm:px-3.5">
                 <Icon name="panel" className="h-[18px] w-[18px]" />
                 <span className="hidden sm:inline">Meu painel</span>
+                {formsNovos > 0 && <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-red-600 px-1 text-[11px] font-bold leading-none text-white">{formsNovos > 99 ? "99+" : formsNovos}</span>}
               </Link>
               <button
                 onClick={async () => {

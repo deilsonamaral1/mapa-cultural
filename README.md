@@ -60,7 +60,9 @@ Em *Authentication → Providers → Email*, "Confirm email" decide se a pessoa 
 
 **Equipes de agentes e envio de formulários.** Rode o `supabase/equipes.sql` (depois do `campo.sql`). Em Administração → *Equipes de agentes* o administrador cria equipes e cadastra os agentes (nome, WhatsApp, e-mail; dá para colar vários de uma vez). Em *Formulários de campo → Enviar a agentes* ele marca uma pessoa ou a equipe toda, e cada agente recebe um **link só dele** (`/campo?e=…`), que já abre com o nome dele e liga a resposta a ele; o painel mostra quem já respondeu e quem falta, com botão de WhatsApp com a mensagem pronta. Também há um link único para grupos de WhatsApp. O botão **Publicar no site** põe o formulário na página pública `/formularios`, aberta para qualquer pessoa responder (as respostas continuam privadas, só a equipe vê).
 
-**Ordem dos arquivos SQL** (cada um uma vez, no SQL Editor): `setup.sql`, `fotos.sql`, `blog.sql`, `campo.sql`, `equipe.sql`, `equipes.sql`.
+**Agentes pela conta (e-mail).** Rode o `supabase/equipes-conta.sql` (depois do `equipes.sql`). Os agentes de uma equipe são **contas já cadastradas no site**: o administrador os adiciona pelo e-mail (um ou vários de uma vez; se a conta não existir, o site avisa que a pessoa precisa se cadastrar). Ao enviar um formulário, ele aparece na hora no **painel do agente** (seção *Formulários para você*, com um número vermelho no botão *Meu painel*), sem precisar de link. O link pessoal continua existindo como alternativa.
+
+**Ordem dos arquivos SQL** (cada um uma vez, no SQL Editor): `setup.sql`, `fotos.sql`, `blog.sql`, `campo.sql`, `equipe.sql`, `equipes.sql`, `equipes-conta.sql`.
 
 **Limites desta versão:** o envio de volta para o Mapa Cultural do Aquiraz e da Secult **ainda não existe**
 (depende de chaves de App criadas pelos administradores deles); ao apagar um envio já publicado, a administração

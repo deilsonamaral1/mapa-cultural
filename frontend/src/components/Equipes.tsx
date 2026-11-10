@@ -50,12 +50,12 @@ export default function Equipes() {
 
   return (
     <section className="space-y-4">
-      <p className="max-w-lg text-sm text-slate-600">Monte equipes de agentes de campo. Depois, em Formulários de campo, você envia um formulário para uma pessoa ou para a equipe toda, cada um com o seu link.</p>
+      <p className="max-w-lg text-sm text-slate-600">Monte equipes com agentes que já têm conta no site: o e-mail é a identidade. Depois, em Formulários de campo, você envia um formulário a uma pessoa ou à equipe toda, e ele aparece no painel de cada agente.</p>
       <form onSubmit={criar} className="flex flex-col gap-2 rounded-xl border bg-white p-4 sm:flex-row">
         <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome da nova equipe (ex.: Mapeamento Litoral)" aria-label="Nome da equipe" required />
         <button className="shrink-0 rounded-full bg-sea px-5 py-2.5 font-semibold text-white hover:bg-sea-deep">Criar equipe</button>
       </form>
-      {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+      {error && <p role="alert" className="whitespace-pre-line rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
       {busy && <p className="text-gray-500">Carregando…</p>}
       {!busy && !error && equipes.length === 0 && <p className="rounded-lg border border-dashed bg-white p-6 text-center text-gray-500">Nenhuma equipe ainda.</p>}
 
@@ -81,32 +81,43 @@ export default function Equipes() {
 }
 
 function Agentes({ equipe, lista, onChange, onError }: { equipe: Equipe; lista: Membro[]; onChange: () => void; onError: (m: string) => void }) {
-  const [nome, setNome] = useState("");
-  const [tel, setTel] = useState("");
   const [email, setEmail] = useState("");
   const [lote, setLote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [aviso, setAviso] = useState("");
 
+  /** Só entra quem já tem conta no site: o e-mail é a identidade do agente. */
   async function adicionar(ev: React.FormEvent) {
     ev.preventDefault();
-    const r = await supabase.from("mc_membros").insert({ equipe_id: equipe.id, nome: nome.trim(), telefone: tel.trim() || null, email: email.trim() || null });
+    setBusy(true);
+    setAviso("");
+    onError("");
+    const r = await supabase.rpc("mc_adicionar_membro", { p_equipe: equipe.id, p_email: email.trim() });
+    setBusy(false);
     if (r.error) return onError(errMsg(r.error));
-    setNome("");
-    setTel("");
+    setAviso(`${r.data} entrou na equipe.`);
     setEmail("");
     onChange();
   }
 
-  /** Várias pessoas de uma vez: uma por linha, "Nome, WhatsApp, e-mail". */
+  /** Vários e-mails de uma vez (um por linha, ou separados por vírgula). */
   async function adicionarLote() {
-    const rows = lote
-      .split("\n")
-      .map((l) => l.split(/[;,\t]/).map((x) => x.trim()))
-      .filter((c) => c[0])
-      .map((c) => ({ equipe_id: equipe.id, nome: c[0], telefone: c[1] || null, email: c[2] || null }));
-    if (!rows.length) return;
-    const r = await supabase.from("mc_membros").insert(rows);
-    if (r.error) return onError(errMsg(r.error));
-    setLote("");
+    const emails = lote.split(/[\n,;\s]+/).map((x) => x.trim()).filter((x) => x.includes("@"));
+    if (!emails.length) return;
+    setBusy(true);
+    setAviso("");
+    onError("");
+    const falhas: string[] = [];
+    let ok = 0;
+    for (const e of emails) {
+      const r = await supabase.rpc("mc_adicionar_membro", { p_equipe: equipe.id, p_email: e });
+      if (r.error) falhas.push(`${e}: ${errMsg(r.error)}`);
+      else ok++;
+    }
+    setBusy(false);
+    setAviso(`${ok} agente(s) adicionado(s).`);
+    if (falhas.length) onError(falhas.join("\n"));
+    else setLote("");
     onChange();
   }
 
@@ -125,7 +136,7 @@ function Agentes({ equipe, lista, onChange, onError }: { equipe: Equipe; lista: 
             <li key={m.id} className="flex items-center justify-between gap-2 px-3 py-2">
               <div className="min-w-0">
                 <p className="truncate font-medium">{m.nome}</p>
-                <p className="truncate text-sm text-slate-500">{[m.telefone, m.email].filter(Boolean).join(" · ") || "sem contato"}</p>
+                <p className="truncate text-sm text-slate-500">{m.email || m.telefone || "sem contato"}{!m.user_id && <span className="ml-2 text-amber-700">(sem conta: recebe só por link)</span>}</p>
               </div>
               <button onClick={() => remover(m)} aria-label={`Remover ${m.nome}`} className="grid h-9 w-9 shrink-0 place-items-center text-slate-500">×</button>
             </li>
@@ -133,17 +144,17 @@ function Agentes({ equipe, lista, onChange, onError }: { equipe: Equipe; lista: 
         </ul>
       )}
 
-      <form onSubmit={adicionar} className="grid gap-2 sm:grid-cols-[1fr_1fr_1fr_auto]">
-        <input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do agente" aria-label="Nome do agente" required />
-        <input value={tel} onChange={(e) => setTel(e.target.value)} placeholder="WhatsApp (com DDD)" aria-label="WhatsApp" inputMode="tel" />
-        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail (opcional)" aria-label="E-mail" />
-        <button className="rounded-full bg-sea px-5 py-2.5 font-semibold text-white">Adicionar</button>
+      <form onSubmit={adicionar} className="flex flex-col gap-2 sm:flex-row">
+        <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="E-mail do agente (conta já cadastrada no site)" aria-label="E-mail do agente" />
+        <button disabled={busy} className="shrink-0 rounded-full bg-sea px-5 py-2.5 font-semibold text-white disabled:opacity-50">{busy ? "Adicionando…" : "Adicionar"}</button>
       </form>
+      {aviso && <p role="status" className="text-sm text-green-700">{aviso}</p>}
+      <p className="text-xs text-slate-500">O agente precisa ter criado a conta em /cadastro. O formulário que você enviar aparece no painel dele.</p>
 
       <details className="text-sm">
-        <summary className="cursor-pointer font-medium text-brand">Adicionar vários de uma vez</summary>
-        <textarea rows={4} value={lote} onChange={(e) => setLote(e.target.value)} className="mt-2" placeholder={"Uma pessoa por linha: nome, WhatsApp, e-mail\nMaria Silva, 85 99999-0000\nJoão Souza, 85 98888-1111, joao@email.com"} aria-label="Lista de agentes" />
-        <button type="button" onClick={adicionarLote} className="mt-2 rounded-full border px-4 py-2 font-semibold">Adicionar todos</button>
+        <summary className="cursor-pointer font-medium text-brand">Adicionar vários e-mails de uma vez</summary>
+        <textarea rows={4} value={lote} onChange={(e) => setLote(e.target.value)} className="mt-2" placeholder={"Um e-mail por linha\nmaria@email.com\njoao@email.com"} aria-label="Lista de e-mails" />
+        <button type="button" disabled={busy} onClick={adicionarLote} className="mt-2 rounded-full border px-4 py-2 font-semibold disabled:opacity-50">Adicionar todos</button>
       </details>
     </div>
   );

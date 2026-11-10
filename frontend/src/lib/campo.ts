@@ -197,7 +197,7 @@ export const ehErroDeRede = (e: unknown) =>
   (typeof navigator !== "undefined" && !navigator.onLine) || e instanceof TypeError || /failed to fetch|network|load failed|fetch/i.test((e as Error)?.message ?? "");
 
 export type Equipe = { id: string; nome: string; descricao: string | null };
-export type Membro = { id: string; equipe_id: string; nome: string; telefone: string | null; email: string | null };
+export type Membro = { id: string; equipe_id: string; nome: string; telefone: string | null; email: string | null; user_id?: string | null };
 export type Envio = { id: string; form_id: string; membro_id: string };
 
 /** Link pessoal de um agente (abre o formulário já com o nome dele e liga a resposta a ele). */

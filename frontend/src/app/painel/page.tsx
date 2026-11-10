@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import EntryForm from "@/components/EntryForm";
+import FormulariosParaMim from "@/components/FormulariosParaMim";
 import MeusPosts from "@/components/MeusPosts";
 import RoleBadge from "@/components/RoleBadge";
 import SiteHeader from "@/components/SiteHeader";
@@ -90,6 +91,8 @@ export default function PainelPage() {
                 <button onClick={() => setEditing("new")} className="rounded-full bg-sea px-5 py-2.5 font-semibold text-white hover:bg-brand-dark">+ Novo cadastro</button>
               )}
             </div>
+
+            <FormulariosParaMim />
 
             {editing && (
               <EntryForm

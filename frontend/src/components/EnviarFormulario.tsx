@@ -54,7 +54,7 @@ export default function EnviarFormulario({ form, onBack }: { form: Formulario; o
       const r = await supabase.from("mc_envios").insert(novos.map((membro_id) => ({ form_id: form.id, membro_id })));
       if (r.error) return setError(errMsg(r.error));
     }
-    setAviso(`Links prontos para ${marcados.size} agente(s). Mande pelo WhatsApp logo abaixo.`);
+    setAviso(`Formulário enviado a ${marcados.size} agente(s). Ele já aparece no painel de cada um que tem conta (o e-mail é a identidade).`);
     await load();
   }
 
@@ -90,12 +90,13 @@ export default function EnviarFormulario({ form, onBack }: { form: Formulario; o
       </div>
 
       {!busy && equipes.length === 0 && (
-        <p className="rounded-lg border border-dashed bg-white p-6 text-center text-sm text-gray-500">Você ainda não criou equipes. Vá na aba <strong>Equipes</strong>, cadastre os agentes e volte aqui.</p>
+        <p className="rounded-lg border border-dashed bg-white p-6 text-center text-sm text-gray-500">Você ainda não criou equipes. Vá na aba <strong>Equipes de agentes</strong>, adicione os agentes pelo e-mail e volte aqui.</p>
       )}
 
       {equipes.length > 0 && (
         <div className="space-y-3 rounded-xl border bg-white p-4">
-          <h3 className="font-semibold">Para agentes da sua equipe (um link para cada pessoa)</h3>
+          <h3 className="font-semibold">Para agentes da sua equipe</h3>
+          <p className="-mt-2 text-sm text-slate-600">Quem você marcar vê o formulário no próprio painel assim que você enviar.</p>
           {equipes.map((eq) => {
             const lista = membros.filter((m) => m.equipe_id === eq.id);
             if (!lista.length) return null;
@@ -111,7 +112,7 @@ export default function EnviarFormulario({ form, onBack }: { form: Formulario; o
                     <li key={m.id}>
                       <label className="flex items-center gap-2 text-sm">
                         <input type="checkbox" checked={marcados.has(m.id)} onChange={() => toggle(m.id)} className="!h-5 !w-5" />
-                        {m.nome}{porMembro.has(m.id) && <span className="text-xs text-slate-500">(já tem link)</span>}
+                        {m.nome}{porMembro.has(m.id) && <span className="text-xs text-slate-500">(já recebeu)</span>}
                       </label>
                     </li>
                   ))}
@@ -119,7 +120,7 @@ export default function EnviarFormulario({ form, onBack }: { form: Formulario; o
               </div>
             );
           })}
-          <button onClick={gerar} className="rounded-full bg-sea px-5 py-2.5 font-semibold text-white hover:bg-sea-deep">Gerar links dos marcados</button>
+          <button onClick={gerar} className="rounded-full bg-sea px-5 py-2.5 font-semibold text-white hover:bg-sea-deep">Enviar aos marcados</button>
         </div>
       )}
 
@@ -127,7 +128,7 @@ export default function EnviarFormulario({ form, onBack }: { form: Formulario; o
         <div className="space-y-3 rounded-xl border bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h3 className="font-semibold">Enviados ({enviados.length}) · aguardando resposta: {pendentes}</h3>
-            <button onClick={() => copiar(enviados.map((m) => texto(m, porMembro.get(m.id)!)).join("\n\n"), "Todas as mensagens copiadas.")} className="rounded-full border px-4 py-2 text-sm font-semibold">Copiar todas as mensagens</button>
+            <button onClick={() => copiar(enviados.map((m) => texto(m, porMembro.get(m.id)!)).join("\n\n"), "Todas as mensagens copiadas.")} className="rounded-full border px-4 py-2 text-sm font-semibold">Copiar mensagens (avisar por fora)</button>
           </div>
           <ul className="divide-y">
             {enviados.map((m) => {
@@ -140,7 +141,7 @@ export default function EnviarFormulario({ form, onBack }: { form: Formulario; o
                     <p className={`text-xs ${ok ? "text-green-700" : "text-amber-700"}`}>{ok ? "✓ Respondeu" : "Aguardando"}</p>
                   </div>
                   <div className="flex flex-wrap gap-2 text-sm">
-                    <a target="_blank" rel="noopener noreferrer" href={waLink(m.telefone, texto(m, e))} className="rounded-full border border-green-600 px-4 py-2 font-semibold text-green-700">WhatsApp</a>
+                    {m.telefone && <a target="_blank" rel="noopener noreferrer" href={waLink(m.telefone, texto(m, e))} className="rounded-full border border-green-600 px-4 py-2 font-semibold text-green-700">WhatsApp</a>}
                     {m.email && <a href={`mailto:${m.email}?subject=${encodeURIComponent(form.titulo)}&body=${encodeURIComponent(texto(m, e))}`} className="rounded-full border px-4 py-2">E-mail</a>}
                     <button onClick={() => copiar(linkEnvio(e.id), `Link de ${m.nome} copiado.`)} className="rounded-full border px-4 py-2">Copiar link</button>
                   </div>
